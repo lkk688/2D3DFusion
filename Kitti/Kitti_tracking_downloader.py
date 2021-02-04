@@ -12,13 +12,17 @@ import sys
 from subprocess import call
 import glob
 
+#Object tracking 2012
+#http://www.cvlibs.net/datasets/kitti/eval_tracking.php
 URL_BASE="https://s3.eu-central-1.amazonaws.com/avg-kitti/"
-tracking_dir_names = ['image_02', 'image_03', 'velodyne', 'calib', 'oxts', 'label_02', 'det_02']
-tracking_dir_zip_tags = ['image_2', 'image_3', 'velodyne', 'calib', 'oxts', 'label_2', 'det_2_lsvm']
+tracking_dir_names = ['image_02', 'image_03', 'velodyne', 'calib', 'oxts', 'label_02', 'det_02'] #folder name under tracking/training
+tracking_dir_zip_tags = ['image_2', 'image_3', 'velodyne', 'calib', 'oxts', 'label_2', 'det_2_lsvm'] #original zip file name
+#lsvm is L-SVM reference detections for training and test set (L-SVM), 108 MB)
+#data_tracking_oxts.zip is GPS/IMU data, if you want to use map information (8 MB)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--kitti_root', type=str, default=os.path.join('/DATA5T/Datasets', 'Kitti'))
+    parser.add_argument('--kitti_root', type=str, default=os.path.join('/mnt/DATA5T', 'Kitti')) #/mnt/DATA5T/Kitti, /DATA5T/Datasets
     # parser.add_argument('--root', type=str, default=None, help='data folder')
 
     return parser.parse_args(sys.argv[1:])
