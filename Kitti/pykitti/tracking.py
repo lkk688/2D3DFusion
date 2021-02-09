@@ -17,8 +17,8 @@ import cv2
 # except NameError:
 #     xrange = range
 
-__author__ = "Sidney zhang"
-__email__ = "sidney@sidazhang.com"
+# __author__ = "Sidney zhang"
+# __email__ = "sidney@sidazhang.com"
 
 
 class tracking:
