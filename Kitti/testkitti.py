@@ -1,7 +1,7 @@
 #from . import pykitti
 import pykitti
 import numpy as np
-import open3d
+import open3d as o3d
 import time
 import argparse
 #ref: https://github.com/intel-isl/Open3D-PointNet2-Semantic3D/blob/master/kitti_visualize.py
@@ -10,7 +10,7 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--kitti_root", default="/DATA5T/Dataset/Kitti/raw", help="Kitti root file", required=True
+        "--kitti_root", default="/DATA5T/Datasets/Kitti/raw", help="Kitti root file"
     )
     flags = parser.parse_args()
 
@@ -18,13 +18,14 @@ if __name__ == "__main__":
     date = "2011_09_26"
     drive = "0001"
 
-    pcd = open3d.PointCloud()
-    vis = open3d.Visualizer()
+    pcd = o3d.geometry.PointCloud()
+    vis = o3d.visualization.Visualizer()
     vis.create_window()
     vis.add_geometry(pcd)
 
-    render_option = vis.get_render_option()
-    render_option.point_size = 0.01
+    #render_option = vis.get_render_option()
+    render_option = vis.get_render_option().load_from_json("/DATA5T/Developer/3DObject/3DDepth/Kitti/o3drenderoption.json")
+    #render_option.point_size = 0.01
 
     #data = pykitti.raw(basedir, date, drive)
     # The 'frames' argument is optional - default: None, which loads the whole dataset.
@@ -47,15 +48,15 @@ if __name__ == "__main__":
     to_reset_view_point = True
     for points_with_intensity in data.velo:
         points = points_with_intensity[:, :3]
-        pcd.points = open3d.Vector3dVector(points)
+        pcd.points = o3d.utility.Vector3dVector(points)
 
-        vis.update_geometry()
+        vis.update_geometry(pcd)
         if to_reset_view_point:
             vis.reset_view_point(True)
             to_reset_view_point = False
         vis.poll_events()
         vis.update_renderer()
-        time.sleep(0.2)
+        time.sleep(1)
 
     vis.destroy_window()
 
