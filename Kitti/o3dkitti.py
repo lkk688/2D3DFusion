@@ -1,5 +1,5 @@
-#from . import pykitti
-import pykitti
+from . import pykitti
+#import pykitti
 import numpy as np
 import open3d as o3d
 import time
