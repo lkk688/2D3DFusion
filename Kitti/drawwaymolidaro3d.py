@@ -13,7 +13,7 @@ if __name__ == "__main__":
         "--root_path", default=r"C:\Users\lkk\Documents\Developer\data", help="root folder"
     )
     parser.add_argument(
-        "--lidarfile", default="waymo0000000.bin", help="Kitti lidar file"
+        "--lidarfile", default="lidardata000001.bin", help="Kitti lidar file"
     )
     flags = parser.parse_args()
 
@@ -24,9 +24,9 @@ if __name__ == "__main__":
     pcd = o3d.geometry.PointCloud()
     """Load and parse a velodyne binary file."""
     scan = np.fromfile(fulllidarfilepath, dtype=np.float32) # vector points
-    points_with_intensity=scan.reshape((-1, 4))#4 points a group
-    points = points_with_intensity[:, :3]#115384, 3
-    pcd.points = o3d.utility.Vector3dVector(points)
+    points_with_intensity=scan.reshape((-1, 3))#3 points a group
+    #points = points_with_intensity[:, :3]#115384, 3
+    pcd.points = o3d.utility.Vector3dVector(points_with_intensity)
 
     # print("Load a ply point cloud, print it, and render it")
     # pcd = o3d.io.read_point_cloud("../../TestData/fragment.ply")
