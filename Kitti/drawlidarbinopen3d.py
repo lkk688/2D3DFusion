@@ -13,7 +13,7 @@ if __name__ == "__main__":
         "--root_path", default=r"C:\Users\lkk\Documents\Developer\data", help="root folder"
     )
     parser.add_argument(
-        "--lidarfile", default="waymo0000000.bin", help="Kitti lidar file"
+        "--lidarfile", default="lidarxyzintensityright000150.bin", help="Kitti lidar file"
     )
     flags = parser.parse_args()
 
