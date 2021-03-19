@@ -51,7 +51,6 @@ All matrices are stored row-major, i.e., the first values correspond to the firs
 From the annotation, we are given the location of the box (t), the yaw angle (R) of the box in camera coordinates (save to assume no pitch and roll) and the dimensions: height (h), width (w) and length (l). Note that 3D boxes of objects are annotated in camera coordinate.
 
 ## Project Lidar to Camera
-Based on the function "show_lidar_on_image-->call calib.project_velo_to_rect", the velodyne points can be mapped to camera coordinate. "calib" is the instance of [class Calibration](\Kitti\kitti_util.py) 
 
 Projection from lidar to camera 2 (project_velo_to_cam2): the following transformations are considered: proj_mat = P_rect2cam2 @ R_ref2rect @ P_velo2cam_ref. The conversion process is shown in the following figure.
 
@@ -62,7 +61,11 @@ Projection from lidar to camera 2 (project_velo_to_cam2): the following transfor
 2. Reference camera (cam0) coordinate to the recitified camera coordinate: x_rect = R0_rect * x_ref, where R0_rect is the rotation to account for rectification for points in the reference camera.
 3. Project points in the rectified camera coordinate to the camera 2 coordinate: y_image2 = P^2_rect * x_rect = P^2_rect * R0_rect * Tr_velo_to_cam * x_velo, where P^2_rect is the projective transformation from rectified reference camera frame to cam2.
 
-Code imgfov_pc_rect = calib.project_velo_to_rect(imgfov_pc_velo) contains two steps: 1) project_velo_to_ref via V2C (Tr_velo_to_cam); 2) project_ref_to_rect (via R0_rect). It finally returens imgfov_pc_rect, where imgfov_pc_rect[i, 2] is the depth, imgfov_pts_2d[i, 0] and imgfov_pts_2d[i, 1] are image width and height. The following code can draw depth on mage:
+Based on the function "show_lidar_on_image-->call calib.project_velo_to_rect", the velodyne points can be mapped to camera coordinate. "calib" is the instance of [class Calibration](\Kitti\kitti_util.py) 
+
+Code imgfov_pc_rect = calib.project_velo_to_rect(imgfov_pc_velo) contains two steps: 1) project_velo_to_ref via V2C (Tr_velo_to_cam); 2) project_ref_to_rect (via R0_rect). It finally returens imgfov_pc_rect, where imgfov_pc_rect[i, 2] is the depth, imgfov_pts_2d[i, 0] and imgfov_pts_2d[i, 1] are image width and height. Note: there is no projection (P^2_rect), that means the data in camera coordinate is still in 3D (with depth).
+
+The following code can draw depth on mage:
 ```bash
 img_lidar = show_lidar_on_image(pc_velo[:, :3], img, calib, img_width, img_height)
 img_lidar = cv2.cvtColor(img_lidar, cv2.COLOR_BGR2RGB)
@@ -75,9 +78,54 @@ plt.show()
 
 ![image](https://user-images.githubusercontent.com/6676586/111734685-caaf5880-8837-11eb-98b2-f5fea2d1ebb1.png)
 
+## Show 3D box on image
+The following code can draw 2D and 3D box on image:
+```bash
+img_bbox2d, img_bbox3d = show_image_with_boxes(img, objects, calib)
 
+img_bbox2d = cv2.cvtColor(img_bbox2d, cv2.COLOR_BGR2RGB)
+fig_bbox2d = plt.figure(figsize=(14, 7))
+ax_bbox2d = fig_bbox2d.subplots()
+ax_bbox2d.imshow(img_bbox2d)
+plt.show()
 
+img_bbox3d = cv2.cvtColor(img_bbox3d, cv2.COLOR_BGR2RGB)
+fig_bbox3d = plt.figure(figsize=(14, 7))
+ax_bbox3d = fig_bbox3d.subplots()
+ax_bbox3d.imshow(img_bbox3d)
+plt.show()
+```
 
+![image](https://user-images.githubusercontent.com/6676586/111735201-dc453000-8838-11eb-8d2b-27ac3cd799aa.png)
+
+[show_image_with_boxes] contains the following major code (utils is Kitti.kitti_util)
+```bash
+box3d_pts_2d, _ = utils.compute_box_3d(obj, calib.P)
+img2 = utils.draw_projected_box3d(img2, box3d_pts_2d)
+```
+"compute_box_3d" calculate corners_3d (8 corner points) based on the 3D bounding box (l,w,h), apply the rotation (ry), then add the translation (t). This calculation does not change the coordinate system (camera coordinate), only get the 8 corner points from the annotation (l,w,h, ry, and location t).
+
+2D projections are obtained from  
+```bash
+corners_2d = project_to_image(np.transpose(corners_3d), P)" 
+
+def project_to_image(pts_3d, P):
+    n = pts_3d.shape[0]
+    pts_3d_extend = np.hstack((pts_3d, np.ones((n, 1))))
+    # print(('pts_3d_extend shape: ', pts_3d_extend.shape))
+    pts_2d = np.dot(pts_3d_extend, np.transpose(P))  # nx3
+    pts_2d[:, 0] /= pts_2d[:, 2]
+    pts_2d[:, 1] /= pts_2d[:, 2]
+    return pts_2d[:, 0:2]
+```
+project_to_image calculates projected_pts_2d(nx3) = pts_3d_extended(nx4) dot P'(4x3). There are two mathematical process:
+
+![image](https://user-images.githubusercontent.com/6676586/111736252-b587f900-883a-11eb-965a-bdcc17724c89.png)
+
+![image](https://user-images.githubusercontent.com/6676586/111736524-37782200-883b-11eb-9cb0-7f58caf9bb8c.png)
+
+The project result is the 2D bounding box in the image coordinate:
+![image](https://user-images.githubusercontent.com/6676586/111736583-5c6c9500-883b-11eb-8029-70520b2d7cd4.png)
 
 
 
