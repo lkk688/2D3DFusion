@@ -10,6 +10,7 @@ The sensor coordinate is shown in the following figure:
 ![image](https://user-images.githubusercontent.com/6676586/111712395-c6207b00-880a-11eb-9f7e-93cfcbe64108.png)
 
 <img src="https://user-images.githubusercontent.com/6676586/111712591-29121200-880b-11eb-85e7-baf2692d42d0.png" width=300 align=right>
+
 The coordinate system of the following sensors:
 * Camera: x = right, y = down, z = forward
 * Velodyne: x = forward, y = left, z = up
