@@ -4,8 +4,6 @@
 Kitti data collection platform [link](http://www.cvlibs.net/datasets/kitti/setup.php):
 ![image](https://user-images.githubusercontent.com/6676586/111712193-5e6a3000-880a-11eb-8218-cabd7c22862d.png)
 
-<img src="https://user-images.githubusercontent.com/6676586/111712193-5e6a3000-880a-11eb-8218-cabd7c22862d.png" width=300 align=right>
-
 The laser scanner spins at 10 frames per second, capturing approximately 100k points per cycle. The vertical resolution of the laser scanner is 64. The cameras are mounted approximately level with the ground plane. The camera images are cropped to a size of 1382 x 512 pixels using libdc's format 7 mode. After rectification, the images get slightly smaller. The cameras are triggered at 10 frames per second by the laser scanner (when facing forward) with shutter time adjusted dynamically (maximum shutter time: 2 ms). 
 
 The sensor coordinate is shown in the following figure:
@@ -15,7 +13,7 @@ The coordinate system of the following sensors:
 * Camera: x = right, y = down, z = forward
 * Velodyne: x = forward, y = left, z = up
 * GPS/IMU: x = forward, y = left, z = up
-![image](https://user-images.githubusercontent.com/6676586/111712591-29121200-880b-11eb-85e7-baf2692d42d0.png)
+<img src="https://user-images.githubusercontent.com/6676586/111712591-29121200-880b-11eb-85e7-baf2692d42d0.png" width=300 align=right>
 
 Lidar point cloud is stored in fileid.bin: 2D array with shape [num_points, 4] Each point encodes XYZ + reflectance.
 
