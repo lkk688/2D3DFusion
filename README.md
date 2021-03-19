@@ -26,8 +26,8 @@ In [Kitti Devkit](https://github.com/bostondiditeam/kitti/tree/master/resources/
 ![image](https://user-images.githubusercontent.com/6676586/111712784-91f98a00-880b-11eb-876d-353af30bbbf6.png)
 
 * The difference between rotation_y (Rotation ry around Y-axis in camera coordinates [-pi..pi]) and alpha (Observation angle of object, ranging [-pi..pi]) is, that rotation_y is directly given in camera coordinates, while alpha also considers the vector from the camera center to the object center, to compute the relative orientation of the object with respect to the camera. 
-- For example, a car which is facing along the X-axis of the camera coordinate system corresponds to rotation_y=0, no matter where it is located in the X/Z plane (bird's eye view)
-- alpha is zero when this object is located along the Z-axis (front) of the camera. 
+..- For example, a car which is facing along the X-axis of the camera coordinate system corresponds to rotation_y=0, no matter where it is located in the X/Z plane (bird's eye view)
+..- alpha is zero when this object is located along the Z-axis (front) of the camera. 
 
 
 ### Calibration
@@ -37,7 +37,7 @@ In [Kitti Devkit](https://github.com/bostondiditeam/kitti/tree/master/resources/
 * The calibration is done with cam0 as the reference sensor. The laser scanner is registered with respect to the reference camera coordinate system. Rectification R_ref2rect has also been considered during calibration to correct for planar alignment between cameras.
 
 * The coordinates in the camera coordinate system can be projected in the image by using the 3x4 projection matrix in the calib folder
-- The left color camera (camera2) should use P2
+..- The left color camera (camera2) should use P2
 
 
 
