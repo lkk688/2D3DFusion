@@ -256,3 +256,48 @@ points, cp_points = frame_utils.convert_range_image_to_point_cloud(
 ```
 
 In frame.context.camera_calibrations, 
+
+Using Mayavi to visualize the Lidar bin file in WaymoKitti3DVisualizev2.ipynb:
+![image](https://user-images.githubusercontent.com/6676586/111883588-8b892080-8979-11eb-8359-e7da4505596d.png)
+
+objectlabels is loaded from labels.txt file for all objects in 5 cameras. Load the labeled data from camera 0: object3dlabel=objectlabels[0], take the first object: box=object3dlabel[0]. box is Box3D class defined in [Waymo.waymokitti_util](/Waymo/waymokitti_util.py). The following code takes an object and a projection matrix (P) and projects the 3d bounding box into the image plane.
+```bash
+import Waymo.waymokitti_util as utils
+box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(box, calib.P[0])
+```
+compute_box_3d calculates corners_3d (8 corner points) based on the 3D bounding box (l,w,h), apply the rotation (ry), then add the translation (t). This calculation does not change the coordinate system (camera coordinate), only get the 8 corner points from the annotation (l,w,h, ry, and location t).
+
+2D projections are obtained from project_to_image inside the utils.compute_box_3d
+```bash
+corners_2d = project_to_image(np.transpose(corners_3d), P)" 
+
+def project_to_image(pts_3d, P):
+    n = pts_3d.shape[0]
+    pts_3d_extend = np.hstack((pts_3d, np.ones((n, 1))))
+    # print(('pts_3d_extend shape: ', pts_3d_extend.shape))
+    pts_2d = np.dot(pts_3d_extend, np.transpose(P))  # nx3
+    pts_2d[:, 0] /= pts_2d[:, 2]
+    pts_2d[:, 1] /= pts_2d[:, 2]
+    return pts_2d[:, 0:2]
+```
+project_to_image calculates projected_pts_2d(nx3) = pts_3d_extended(nx4) dot P'(4x3). The project result is the 2D bounding box in the image coordinate.
+
+In the following code, use the project_rect_to_velo to convert the 3D bounding box (in camera coordinate) to 8 corner points to velodyne coordinate.
+```bash
+box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d)
+# convert 3Dbox in rect camera coordinate to velodyne coordinate
+def project_rect_to_velo(self, pts_3d_rect, camera_id):
+    """ Input: nx3 points in rect camera coord.
+        Output: nx3 points in velodyne coord.
+    """
+    pts_3d_ref = self.project_rect_to_ref(pts_3d_rect)# using R0 to convert to camera rectified coordinate (same to camera coordinate)
+    return self.project_ref_to_velo(pts_3d_ref, camera_id)#using C2V
+```
+
+box3d_pts_3d_velo can be used as the 3D bounding box drawn on Lidar figure. For example, the camera 0's label 3D box shown in lidar
+![image](https://user-images.githubusercontent.com/6676586/111886170-71efd500-8989-11eb-9d16-ed39943b8868.png)
+
+When draw other 3D labels into the Lidar figure, we need to use ref_cameraid=0 in box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid), because all 3D labels are annotated in the camera 0 frame not the individual camera frame. The following figure shows all 3D bounding boxs from 5 camera labels to the lidar figure:
+
+![image](https://user-images.githubusercontent.com/6676586/111888682-fa777100-899b-11eb-8e2e-7df0e311cb14.png)
+
