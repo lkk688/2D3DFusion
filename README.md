@@ -78,7 +78,7 @@ plt.show()
 
 ![image](https://user-images.githubusercontent.com/6676586/111734685-caaf5880-8837-11eb-98b2-f5fea2d1ebb1.png)
 
-## Show 3D box on image
+## Show 3D/2D box on image
 The following code can draw 2D and 3D box on image:
 ```bash
 img_bbox2d, img_bbox3d = show_image_with_boxes(img, objects, calib)
@@ -124,10 +124,135 @@ project_to_image calculates projected_pts_2d(nx3) = pts_3d_extended(nx4) dot P'(
 
 ![image](https://user-images.githubusercontent.com/6676586/111736524-37782200-883b-11eb-9cb0-7f58caf9bb8c.png)
 
+Ref this link for more detailed explanation of [camera projection](http://www.cs.cmu.edu/~16385/s17/Slides/11.1_Camera_matrix.pdf).
+
 The project result is the 2D bounding box in the image coordinate:
 ![image](https://user-images.githubusercontent.com/6676586/111736583-5c6c9500-883b-11eb-8029-70520b2d7cd4.png)
 
 
+## Waymo Dataset
+Waymo sensor setup and sensor configuration on Waymo’s autonomous vehicle:
+
+![image](https://user-images.githubusercontent.com/6676586/111812160-0fb5a800-8895-11eb-8a13-657121265b21.png)
 
 
+Dataset camera images are 1920x1280, which is equivalent to Ultra HD resolution and a horizontal field of view (HFOV) of +-25.2 degree. 2D bounding box labels in the camera images. The camera labels are tight-fitting, axis-aligned 2D bounding boxes with globally unique tracking IDs. The bounding boxes cover only the visible parts of the objects. The following objects have 2D labels: vehicles, pedestrians, cyclists. Waymo do not provide object track correspondences across cameras. Trains and trams are not considered vehicles and are not labeled. Motorcycles and motorcyclists are labeled as vehicles.
 
+Top LiDAR covers a vertical field of view (VFOV) from -17.6 to 2.4 degrees, and its range is 75 meters and covers 360 degrees horizontally. Front, side left, side right, and rear LiDARs covers a relatively smaller area than the top LiDAR. They all include a vertical field of view (VFOV) from -90 to 30 degrees, and their range is 20 meters, which is smaller than the top LiDAR. The following objects have 3D labels: vehicles, pedestrians, cyclists, signs. 3D bounding box labels in lidar data. The lidar labels are 3D 7-DOF bounding boxes in the vehicle frame with globally unique tracking IDs. The bounding boxes have zero pitch and zero roll. Heading is the angle (in radians, normalized to [-π, π]) needed to rotate the vehicle frame +X axis about the Z axis to align with the vehicle's forward axis. Each scene may include an area that is not labeled, which is called a “No Label Zone” (NLZ). NLZs are represented as polygons in the global frame. These polygons are not necessarily convex. In addition to these polygons, each lidar point is annotated with a boolean to indicate whether it is in an NLZ or not.
+
+The dataset contains data from five lidars (TOP = 1; FRONT = 2; SIDE_LEFT = 3; SIDE_RIGHT = 4; REAR = 5) - one mid-range lidar (top) and four short-range lidars (front, side left, side right, and rear). The point cloud of each lidar is encoded as a range image. Two range images are provided for each lidar, one for each of the two strongest returns. It has 4 channels: channel 0: range (see spherical coordinate system definition) channel 1: lidar intensity channel 2: lidar elongation channel 3: is_in_nlz (1 = in, -1 = not in)
+
+[label.proto](https://github.com/waymo-research/waymo-open-dataset/blob/master/waymo_open_dataset/label.proto)
+```bash
+message Label {
+  // Upright box, zero pitch and roll.
+  message Box {
+    // Box coordinates in vehicle frame.
+    optional double center_x = 1;
+    optional double center_y = 2;
+    optional double center_z = 3;
+
+    // Dimensions of the box. length: dim x. width: dim y. height: dim z.
+    optional double length = 5;
+    optional double width = 4;
+    optional double height = 6;
+
+    // The heading of the bounding box (in radians).  The heading is the angle
+    // required to rotate +x to the surface normal of the box front face. It is
+    // normalized to [-pi, pi).
+    optional double heading = 7;
+
+    enum Type {
+      TYPE_UNKNOWN = 0;
+      // 7-DOF 3D (a.k.a upright 3D box).
+      TYPE_3D = 1;
+      // 5-DOF 2D. Mostly used for laser top down representation.
+      TYPE_2D = 2;
+      // Axis aligned 2D. Mostly used for image.
+      TYPE_AA_2D = 3;
+    }
+  }
+  
+enum Type {
+    TYPE_UNKNOWN = 0;
+    TYPE_VEHICLE = 1;
+    TYPE_PEDESTRIAN = 2;
+    TYPE_SIGN = 3;
+    TYPE_CYCLIST = 4;
+  }
+```
+
+[dataset.proto](https://github.com/waymo-research/waymo-open-dataset/blob/master/waymo_open_dataset/dataset.proto) contains the major definition of CameraName, LaserName, Context, Frame, RangeImage, CameraLabels, Laser, Frame
+```bash
+message CameraName {
+  enum Name {
+    UNKNOWN = 0;
+    FRONT = 1;
+    FRONT_LEFT = 2;
+    FRONT_RIGHT = 3;
+    SIDE_LEFT = 4;
+    SIDE_RIGHT = 5;
+  }
+}
+message LaserName {
+  enum Name {
+    UNKNOWN = 0;
+    TOP = 1;
+    FRONT = 2;
+    SIDE_LEFT = 3;
+    SIDE_RIGHT = 4;
+    REAR = 5;
+  }
+}
+message CameraCalibration {
+  optional CameraName.Name name = 1;
+  // 1d Array of [f_u, f_v, c_u, c_v, k{1, 2}, p{1, 2}, k{3}].
+  // Note that this intrinsic corresponds to the images after scaling.
+  // Camera model: pinhole camera.
+  // Lens distortion:
+  //   Radial distortion coefficients: k1, k2, k3.
+  //   Tangential distortion coefficients: p1, p2.
+  // k_{1, 2, 3}, p_{1, 2} follows the same definition as OpenCV.
+  // https://en.wikipedia.org/wiki/Distortion_(optics)
+  // https://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
+  repeated double intrinsic = 2;
+  // Camera frame to vehicle frame.
+  optional Transform extrinsic = 3;
+  // Camera image size.
+  optional int32 width = 4;
+  optional int32 height = 5;
+  .....
+
+message LaserCalibration {
+  optional LaserName.Name name = 1;
+  // If non-empty, the beam pitch (in radians) is non-uniform. When constructing
+  // a range image, this mapping is used to map from beam pitch to range image
+  // row.  If this is empty, we assume a uniform distribution.
+  repeated double beam_inclinations = 2;
+  // beam_inclination_{min,max} (in radians) are used to determine the mapping.
+  optional double beam_inclination_min = 3;
+  optional double beam_inclination_max = 4;
+  // Lidar frame to vehicle frame.
+  optional Transform extrinsic = 5;
+
+}
+
+```
+
+In [WaymoStart.ipynb](/Notebook/WaymoStart.ipynb), get frame via "frame.ParseFromString(bytearray(data.numpy()))", img in frame.images, where frame definition is in [WaymoStart.ipynb](/Notebook/WaymoStart.ipynb), images type is CameraImage. currentframe.camera_label.labels contains the 2D image labels. currentframe.projected_lidar_labels also contains the 2D bounding box. Function show_camera_image in [WaymoStart.ipynb](/Notebook/WaymoStart.ipynb) plots the 5 camera images:
+
+![image](https://user-images.githubusercontent.com/6676586/111861532-4f6ba680-890c-11eb-9fce-e5395147853e.png)
+
+Using the following code to get the range_images from frame, and convert to point cloud:
+```bash
+(range_images, camera_projections, range_image_top_pose) = frame_utils.parse_range_image_and_camera_projection(currentframe)
+#convert_range_image_to_point_cloud 
+points, cp_points = frame_utils.convert_range_image_to_point_cloud(
+    currentframe,
+    range_images,
+    camera_projections,
+    range_image_top_pose,
+    keep_polar_features=True)
+```
+
+In frame.context.camera_calibrations, 
