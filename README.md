@@ -295,9 +295,11 @@ def project_rect_to_velo(self, pts_3d_rect, camera_id):
 ```
 
 box3d_pts_3d_velo can be used as the 3D bounding box drawn on Lidar figure. For example, the camera 0's label 3D box shown in lidar
-![image](https://user-images.githubusercontent.com/6676586/111886170-71efd500-8989-11eb-9d16-ed39943b8868.png)
+![image](https://user-images.githubusercontent.com/6676586/111888712-46c2b100-899c-11eb-9c7d-3823988819e9.png)
+
 
 When draw other 3D labels into the Lidar figure, we need to use ref_cameraid=0 in box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid), because all 3D labels are annotated in the camera 0 frame not the individual camera frame. The following figure shows all 3D bounding boxs from 5 camera labels to the lidar figure:
 
-![image](https://user-images.githubusercontent.com/6676586/111888682-fa777100-899b-11eb-8e2e-7df0e311cb14.png)
+![image](https://user-images.githubusercontent.com/6676586/111888692-1da22080-899c-11eb-9255-2e2d56d67eec.png)
+
 
