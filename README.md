@@ -302,4 +302,18 @@ When draw other 3D labels into the Lidar figure, we need to use ref_cameraid=0 i
 
 ![image](https://user-images.githubusercontent.com/6676586/111888692-1da22080-899c-11eb-9255-2e2d56d67eec.png)
 
+The box3d_pts_2d (8 points) returned from box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(box, calib.P[0]), can also draw 3D box (mapped to 2D) on image plane:
+
+![image](https://user-images.githubusercontent.com/6676586/111889018-e84b0200-899e-11eb-9170-9e7390bec0e5.png)
+
+If we want to draw the 3D bounding box on other images (other than image 0), we need to do the following additional steps (basically, we first convert the 3D points in cam0 coordinate to velodyne, then convert to camID coordinate, finally project to imageID coordinate):
+```bash
+_, box3d_pts_3d = utils.compute_box_3d(obj, calib.P[camera_index]) #get 3D points in label (in camera 0 coordinate), convert to 8 corner points
+box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid) # convert the 3D points to velodyne coordinate
+box3d_pts_3d_cam=calib.project_velo_to_cameraid(box3d_pts_3d_velo,cameraid) # convert from the velodyne coordinate to camera coordinate (cameraid)
+box3d_pts_2d=calib.project_cam3d_to_image(box3d_pts_3d_cam,cameraid) # project 3D points in cameraid coordinate to the imageid coordinate (2D 8 points)
+```
+
+The 3D bounding box in 5 images is shown in the following figure:
+![image](https://user-images.githubusercontent.com/6676586/111889936-20077900-89a2-11eb-942c-f19fa1bdcf11.png)
 
