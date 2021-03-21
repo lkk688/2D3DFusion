@@ -255,8 +255,7 @@ points, cp_points = frame_utils.convert_range_image_to_point_cloud(
     keep_polar_features=True)
 ```
 
-In frame.context.camera_calibrations, 
-
+### Visualize Lidar 3D data
 Using Mayavi to visualize the Lidar bin file in WaymoKitti3DVisualizev2.ipynb:
 ![image](https://user-images.githubusercontent.com/6676586/111883588-8b892080-8979-11eb-8359-e7da4505596d.png)
 
@@ -302,6 +301,7 @@ When draw other 3D labels into the Lidar figure, we need to use ref_cameraid=0 i
 
 ![image](https://user-images.githubusercontent.com/6676586/111888692-1da22080-899c-11eb-9255-2e2d56d67eec.png)
 
+### Draw 3D bounding box on image plane:
 The box3d_pts_2d (8 points) returned from box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(box, calib.P[0]), can also draw 3D box (mapped to 2D) on image plane:
 
 ![image](https://user-images.githubusercontent.com/6676586/111889018-e84b0200-899e-11eb-9170-9e7390bec0e5.png)
@@ -316,4 +316,10 @@ box3d_pts_2d=calib.project_cam3d_to_image(box3d_pts_3d_cam,cameraid) # project 3
 
 The 3D bounding box in 5 images is shown in the following figure:
 ![image](https://user-images.githubusercontent.com/6676586/111889936-20077900-89a2-11eb-942c-f19fa1bdcf11.png)
+
+### Project lidar to 2D image
+Project the lidar data to the 2D image needs the following key steps: 1) project_velo_to_image and only take points in image width and height, 2) use imgfov_pc_rect=calib.project_velo_to_cameraid_rect to convert velodyne points to cameraid coordinate (3D), the imgfov_pc_rect[i, 2] is the depth.
+
+![image](https://user-images.githubusercontent.com/6676586/111890589-f5b8ba00-89a7-11eb-945a-7c1835b22f8c.png)
+
 
