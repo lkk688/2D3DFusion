@@ -45,7 +45,8 @@ INSTANCE3D_Color = {
 }#'Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 'Cyclist', 'Tram','Misc' or 'DontCare'
 
 def readwaymo():
-    Basepath=r'..\Waymo\sampledata'#r'D:\\Dataset\\WaymoKittitraining_0000\\'
+    Basepath=r'.\Waymo\sampledata' #r'..\Waymo\sampledata' #r'D:\\Dataset\\WaymoKittitraining_0000\\'+'velodyne'
+    #Basepath=r'.\Kitti\sampledata'
     data_idx=30
 
     filename="%06d.png" % (data_idx)
@@ -76,7 +77,7 @@ def readwaymo():
     print(data_idx, "velo  shape: ", pc_velo.shape)
 
     #Filter Lidar Points
-    point_cloud_range=[0, -15, -5, 90, 15, 4]#[0, -39.68, -3, 69.12, 39.68, 1] # 0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
+    point_cloud_range=[-50, -15, -5, 90, 15, 4]#[0, -39.68, -3, 69.12, 39.68, 1] # 0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
     mask = (pc_velo[:, 0] >= point_cloud_range[0]) & (pc_velo[:, 0] <= point_cloud_range[3]) \
            & (pc_velo[:, 1] >= point_cloud_range[1]) & (pc_velo[:, 1] <= point_cloud_range[4]) \
            & (pc_velo[:, 2] >= point_cloud_range[2]) & (pc_velo[:, 2] <= point_cloud_range[5]) \

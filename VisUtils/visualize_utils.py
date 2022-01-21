@@ -274,3 +274,82 @@ def draw_gt_boxes3d(
     # mlab.show(1)
     # mlab.view(azimuth=180, elevation=70, focalpoint=[ 12.0909996 , -1.04700089, -2.03249991], distance=62.0, figure=fig)
     return fig
+
+#ref: https://github.com/open-mmlab/OpenPCDet/blob/master/tools/visual_utils/visualize_utils.py
+def draw_multi_grid_range(fig, grid_size=20, bv_range=(-60, -60, 60, 60)):
+    for x in range(bv_range[0], bv_range[2], grid_size):
+        for y in range(bv_range[1], bv_range[3], grid_size):
+            fig = draw_grid(x, y, x + grid_size, y + grid_size, fig)
+
+    return fig
+
+def draw_grid(x1, y1, x2, y2, fig, tube_radius=None, color=(0.5, 0.5, 0.5)):
+    mlab.plot3d([x1, x1], [y1, y2], [0, 0], color=color, tube_radius=tube_radius, line_width=1, figure=fig)
+    mlab.plot3d([x2, x2], [y1, y2], [0, 0], color=color, tube_radius=tube_radius, line_width=1, figure=fig)
+    mlab.plot3d([x1, x2], [y1, y1], [0, 0], color=color, tube_radius=tube_radius, line_width=1, figure=fig)
+    mlab.plot3d([x1, x2], [y2, y2], [0, 0], color=color, tube_radius=tube_radius, line_width=1, figure=fig)
+    return 
+
+
+def boxes_to_corners_3d(boxes3d):
+    """
+        7 -------- 4
+       /|         /|
+      6 -------- 5 .
+      | |        | |
+      . 3 -------- 0
+      |/         |/
+      2 -------- 1
+    Args:
+        boxes3d:  (N, 7) [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
+    Returns:
+    """
+    #boxes3d, is_numpy = check_numpy_to_torch(boxes3d)
+
+    template = boxes3d.new_tensor((
+        [1, 1, -1], [1, -1, -1], [-1, -1, -1], [-1, 1, -1],
+        [1, 1, 1], [1, -1, 1], [-1, -1, 1], [-1, 1, 1],
+    )) / 2
+
+    corners3d = boxes3d[:, None, 3:6].repeat(1, 8, 1) * template[None, :, :]
+    corners3d = rotate_points_along_z(corners3d.view(-1, 8, 3), boxes3d[:, 6]).view(-1, 8, 3)
+    corners3d += boxes3d[:, None, 0:3]
+
+    return corners3d.numpy() #if is_numpy else corners3d
+
+
+def mydraw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labels=None):
+    if not isinstance(points, np.ndarray):
+        points = points.cpu().numpy()
+    if ref_boxes is not None and not isinstance(ref_boxes, np.ndarray):
+        ref_boxes = ref_boxes.cpu().numpy()
+    if gt_boxes is not None and not isinstance(gt_boxes, np.ndarray):
+        gt_boxes = gt_boxes.cpu().numpy()
+    if ref_scores is not None and not isinstance(ref_scores, np.ndarray):
+        ref_scores = ref_scores.cpu().numpy()
+    if ref_labels is not None and not isinstance(ref_labels, np.ndarray):
+        ref_labels = ref_labels.cpu().numpy()
+
+    fig = mlab.figure(
+        figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
+    )
+    fig = draw_lidar(points, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=False)
+    #fig = visualize_pts(points)
+
+    fig = draw_multi_grid_range(fig, bv_range=(0, -40, 80, 40))
+
+    if gt_boxes is not None:
+        corners3d = boxes_to_corners_3d(gt_boxes)
+        fig = draw_corners3d(corners3d, fig=fig, color=(0, 0, 1), max_num=100)
+
+    if ref_boxes is not None and len(ref_boxes) > 0:
+        ref_corners3d = boxes_to_corners_3d(ref_boxes)
+        if ref_labels is None:
+            fig = draw_corners3d(ref_corners3d, fig=fig, color=(0, 1, 0), cls=ref_scores, max_num=100)
+        else:
+            for k in range(ref_labels.min(), ref_labels.max() + 1):
+                cur_color = tuple(box_colormap[k % len(box_colormap)])
+                mask = (ref_labels == k)
+                fig = draw_corners3d(ref_corners3d[mask], fig=fig, color=cur_color, cls=ref_scores[mask], max_num=100)
+    mlab.view(azimuth=-179, elevation=54.0, distance=104.0, roll=90.0)
+    return fig

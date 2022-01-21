@@ -271,7 +271,7 @@ def load_velo_scan(velo_filename, dtype=np.float32, n_vec=4):
 
 
 def compute_box_3d(obj, P):
-    """ Takes an object and a projection matrix (P) and projects the 3d
+    """ Takes an object3D and a projection matrix (P) and projects the 3d
         bounding box into the image plane.
         Returns:
             corners_2d: (8,2) array in left image coord.
@@ -329,7 +329,7 @@ def project_to_image(pts_3d, P):
     pts_2d[:, 0] /= pts_2d[:, 2]
     pts_2d[:, 1] /= pts_2d[:, 2]
     return pts_2d[:, 0:2]
-    
+
 def rotx(t):
     """ 3D Rotation about the x-axis. """
     c = np.cos(t)
