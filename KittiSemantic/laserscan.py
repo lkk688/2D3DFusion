@@ -26,11 +26,11 @@ class LaserScan:
     # unprojected range (list of depths for each point)
     self.unproj_range = np.zeros((0, 1), dtype=np.float32)
 
-    # projected point cloud xyz - [H,W,3] xyz coord (-1 is no data)
+    # projected point cloud xyz - [H,W,3] xyz coord (-1 is no data) [64, 1024,3]
     self.proj_xyz = np.full((self.proj_H, self.proj_W, 3), -1,
                             dtype=np.float32)
 
-    # projected remission - [H,W] intensity (-1 is no data)
+    # projected remission - [H,W] intensity (-1 is no data) [64, 1024]
     self.proj_remission = np.full((self.proj_H, self.proj_W), -1,
                                   dtype=np.float32)
 

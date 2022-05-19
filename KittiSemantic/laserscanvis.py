@@ -6,7 +6,7 @@ from vispy.scene import visuals, SceneCanvas
 import numpy as np
 from matplotlib import pyplot as plt
 #from auxiliary.laserscan import LaserScan, SemLaserScan
-import KittiSemantic.laserscan as LaserScan
+#import KittiSemantic.laserscan as LaserScan
 
 
 class LaserScanVis:
