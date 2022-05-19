@@ -10,7 +10,7 @@ ROOT_DIR = os.path.dirname(BASE_DIR)#Project root folder
 sys.path.append(ROOT_DIR)
 
 #add __init__.py in KittiSemantic
-from KittiSemantic.laserscan import LaserScan
+from KittiSemantic.laserscan import LaserScan, SemLaserScan
 from KittiSemantic.laserscanvis import LaserScanVis
 #import KittiSemantic.laserscan as LaserScan #'module' object is not callable
 #import KittiSemantic.laserscanvis as LaserScanVis
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ignore_semantics', '-i',
         dest='ignore_semantics',
-        default=True,
+        default=False,
         action='store_true',
         help='Ignore semantics. Visualizes uncolored pointclouds.'
         'Defaults to %(default)s',
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     else:
         color_dict = CFG["color_map"]
         nclasses = len(color_dict)
-        #scan = SemLaserScan(nclasses, color_dict, project=True)
+        scan = SemLaserScan(nclasses, color_dict, project=True)
     
     # create a visualizer
     semantics = not FLAGS.ignore_semantics
