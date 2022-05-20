@@ -3,7 +3,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import yaml
+import yaml #pip install PyYAML
 import sys
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))#Current folder
 ROOT_DIR = os.path.dirname(BASE_DIR)#Project root folder
@@ -26,7 +26,7 @@ if __name__ == '__main__':
         '--dataset', '-d',
         type=str,
         required=False,
-        default="/mnt/DATA10T/Datasets/KittiSemantic/dataset",
+        default="D:\Dataset\KittiSemantic\dataset",#"/mnt/DATA10T/Datasets/KittiSemantic/dataset",
         help='Dataset to visualize. No Default',
     )
     parser.add_argument(

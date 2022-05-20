@@ -75,7 +75,7 @@ class LaserScanVis:
       # self.inst_view.camera.link(self.scan_view.camera)
 
     # img canvas size
-    self.multiplier = 1
+    self.multiplier = 8 #1
     self.canvas_W = 1024
     self.canvas_H = 64
     if self.semantics:
