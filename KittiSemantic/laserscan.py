@@ -8,9 +8,9 @@ class LaserScan:
 
   def __init__(self, project=False, H=64, W=1024, fov_up=3.0, fov_down=-25.0):
     self.project = project
-    self.proj_H = H
-    self.proj_W = W
-    self.proj_fov_up = fov_up
+    self.proj_H = H #64
+    self.proj_W = W #1024
+    self.proj_fov_up = fov_up #3.0
     self.proj_fov_down = fov_down
     self.reset()
 

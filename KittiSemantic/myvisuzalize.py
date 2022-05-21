@@ -118,7 +118,7 @@ if __name__ == '__main__':
         scan = LaserScan(project=True)  # project all opened scans to spheric proj
     else:
         color_dict = CFG["color_map"]
-        nclasses = len(color_dict)
+        nclasses = len(color_dict)#34classes
         scan = SemLaserScan(nclasses, color_dict, project=True)
     
     # create a visualizer

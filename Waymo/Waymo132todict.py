@@ -365,7 +365,8 @@ if __name__ == "__main__":
     #folders = ["training_0000","training_0001","training_0002","training_0003","training_0004"]
     #folders = ["training_0005","training_0006","training_0007","training_0008","training_0009"]
     #folders = ["training_0010","training_0011","training_0012","training_0013","training_0014"]
-    folders = ["training_0015","training_0016","training_0017","training_0018","training_0019"]
+    #folders = ["training_0015","training_0016","training_0017","training_0018","training_0019"]
+    folders = ["training_0020","training_0021","training_0022","training_0023","training_0024"]
     root_path = "/mnt/DATA10T/Datasets/Waymo132/"
     out_dir = "/mnt/DATA10T/Datasets/Waymo132/Outdicts"
     data_files = [path for x in folders for path in glob(
@@ -375,7 +376,8 @@ if __name__ == "__main__":
     #prefix='train01234_'
     #prefix='train56789_'
     #prefix='train1011121314_'
-    prefix='train1516171819_'
+    #prefix='train1516171819_'
+    prefix='train2021222324_'
     for fileidx in range(len(data_files)):
         extract_onesegment_todicts(fileidx, data_files, step, out_dir,prefix)
     print("finished")
