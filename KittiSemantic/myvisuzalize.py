@@ -26,7 +26,7 @@ if __name__ == '__main__':
         '--dataset', '-d',
         type=str,
         required=False,
-        default="D:\Dataset\KittiSemantic\dataset",#"/mnt/DATA10T/Datasets/KittiSemantic/dataset",
+        default="/mnt/DATA10T/Datasets/KittiSemantic/dataset",#,"D:\Dataset\KittiSemantic\dataset"
         help='Dataset to visualize. No Default',
     )
     parser.add_argument(
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--do_instances', '-di',
         dest='do_instances',
-        default=False,
+        default=True,#False,
         action='store_true',
         help='Visualize instances too. Defaults to %(default)s',
     )
@@ -93,10 +93,10 @@ if __name__ == '__main__':
         print("Sequence folder doesn't exist! Exiting...")
         quit()
 
-    # populate the pointclouds
+    # populate the pointclouds, get all Lidar bin files in scan_paths
     scan_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
         os.path.expanduser(scan_paths)) for f in fn]
-    scan_names.sort()
+    scan_names.sort() #list of Lidar bin files
 
     label_paths = os.path.join(FLAGS.dataset, "sequences",
                                  FLAGS.sequence, "labels")
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     # populate the pointclouds
     label_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
         os.path.expanduser(label_paths)) for f in fn]
-    label_names.sort()
+    label_names.sort() #The list of all files of label names
 
     # check that there are same amount of labels and scans
     assert(len(label_names) == len(scan_names))
@@ -122,8 +122,8 @@ if __name__ == '__main__':
         scan = SemLaserScan(nclasses, color_dict, project=True)
     
     # create a visualizer
-    semantics = not FLAGS.ignore_semantics
-    instances = FLAGS.do_instances
+    semantics = not FLAGS.ignore_semantics #True
+    instances = FLAGS.do_instances #False
     if not semantics:
         label_names = None
     vis = LaserScanVis(scan=scan,

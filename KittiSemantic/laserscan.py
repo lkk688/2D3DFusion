@@ -183,7 +183,7 @@ class SemLaserScan(LaserScan):
     self.sem_color_lut = np.zeros((max_sem_key + 100, 3), dtype=np.float32)
     for key, value in sem_color_dict.items():
       self.sem_color_lut[key] = np.array(value, np.float32) / 255.0
-
+    #max_sem_key=260, sem_color_lut shape=360,3 (most items are [0 0 0] )
     # make instance colors
     max_inst_id = 100000
     self.inst_color_lut = np.random.uniform(low=0.0,
