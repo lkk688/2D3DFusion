@@ -44,6 +44,16 @@ if __name__ == '__main__':
         help='Sequence to visualize. Defaults to %(default)s',
     )
     parser.add_argument(
+        '--predictions', '-p',
+        type=str,
+        default=None,
+        required=False,
+        help='Alternate location for labels, to use predictions folder. '
+        'Must point to directory containing the predictions in the proper format '
+        ' (see readme)'
+        'Defaults to %(default)s',
+    )
+    parser.add_argument(
         '--ignore_semantics', '-i',
         dest='ignore_semantics',
         default=False,
@@ -71,6 +81,7 @@ if __name__ == '__main__':
     print("Dataset", FLAGS.dataset)
     print("Config", FLAGS.config)
     print("Sequence", FLAGS.sequence)
+    print("Predictions", FLAGS.predictions)
 
     # open config file
     try:
@@ -98,20 +109,26 @@ if __name__ == '__main__':
         os.path.expanduser(scan_paths)) for f in fn]
     scan_names.sort() #list of Lidar bin files
 
-    label_paths = os.path.join(FLAGS.dataset, "sequences",
+    if not FLAGS.ignore_semantics:
+        if FLAGS.predictions is not None:
+            label_paths = os.path.join(FLAGS.predictions, "sequences",
+                                 FLAGS.sequence, "predictions")
+        else:
+            label_paths = os.path.join(FLAGS.dataset, "sequences",
                                  FLAGS.sequence, "labels")
-    if os.path.isdir(label_paths):
-      print("Labels folder exists! Using labels from %s" % label_paths)
-    else:
-      print("Labels folder doesn't exist! Exiting...")
-      quit()
-    # populate the pointclouds
-    label_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
-        os.path.expanduser(label_paths)) for f in fn]
-    label_names.sort() #The list of all files of label names
+        if os.path.isdir(label_paths):
+            print("Labels folder exists! Using labels from %s" % label_paths)
+        else:
+            print("Labels folder doesn't exist! Exiting...")
+            quit()
 
-    # check that there are same amount of labels and scans
-    assert(len(label_names) == len(scan_names))
+        # populate the pointclouds
+        label_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
+            os.path.expanduser(label_paths)) for f in fn]
+        label_names.sort() #The list of all files of label names
+
+        # check that there are same amount of labels and scans
+        assert(len(label_names) == len(scan_names))
 
     # create a scan
     if FLAGS.ignore_semantics:
