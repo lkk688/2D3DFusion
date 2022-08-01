@@ -10,11 +10,11 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--root_path", default=r"C:\Users\lkk\Documents\Developer\data", help="root folder"
-    )
+        "--root_path", default='/mnt/DATA5T/Kitti/raw/2011_09_28/2011_09_28_drive_0161_sync/velodyne_points/data/', help="root folder"
+    )#r"C:\Users\lkk\Documents\Developer\data"
     parser.add_argument(
-        "--lidarfile", default="lidarxyzintensityright000150.bin", help="Kitti lidar file"
-    )
+        "--lidarfile", default="0000000000.bin", help="Kitti lidar file"
+    )#lidarxyzintensityright000150.bin
     flags = parser.parse_args()
 
     basedir = flags.root_path
