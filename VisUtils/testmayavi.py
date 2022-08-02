@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 from mayavi import mlab
 
 #test Mayavi
