@@ -1,5 +1,5 @@
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 from mayavi import mlab
 
 #test Mayavi
@@ -77,5 +77,5 @@ def test_plot3d2():#https://docs.enthought.com/mayavi/mayavi/auto/mlab_helper_fu
     mlab.show()
 
 if __name__ == '__main__':
-    #testMayavi1()
-    test_plot3d2()
+    testMayavi1()
+    #test_plot3d2()
