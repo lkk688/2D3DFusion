@@ -452,39 +452,127 @@ class Visualizer(object):
 
 import argparse
 import os
+
+def testmmdetection3dresult(resultpath='./outputs/lidarresultsnp.npy'):
+    lidarresults=np.load(resultpath,allow_pickle=True)
+    #print("npy results length:", len(lidarresults))
+    lidarresult=lidarresults.item()
+    points = lidarresult['points']#x,4 shape, boxes_3d, labels_3d
+    pred_bboxes = lidarresult['boxes_3d']
+    return points, pred_bboxes
+
+
+#-------new add
+class Object3d(object):
+    """ 3d object label """
+
+    def __init__(self, label_file_line):
+        data = label_file_line.split(" ")
+        data[1:] = [float(x) for x in data[1:]]
+
+        # extract label, truncation, occlusion
+        self.type = data[0]  # 'Car', 'Pedestrian', ...
+        self.truncation = data[1]  # truncated pixel ratio [0..1]
+        self.occlusion = int(
+            data[2]
+        )  # 0=visible, 1=partly occluded, 2=fully occluded, 3=unknown
+        self.alpha = data[3]  # object observation angle [-pi..pi]
+
+        # extract 2d bounding box in 0-based coordinates
+        self.xmin = data[4]  # left
+        self.ymin = data[5]  # top
+        self.xmax = data[6]  # right
+        self.ymax = data[7]  # bottom
+        self.box2d = np.array([self.xmin, self.ymin, self.xmax, self.ymax])
+
+        # extract 3d bounding box information
+        self.h = data[8]  # box height
+        self.w = data[9]  # box width
+        self.l = data[10]  # box length (in meters)
+        self.t = (data[11], data[12], data[13])  # location (x,y,z) in camera coord.
+        self.ry = data[14]  # yaw angle (around Y-axis in camera coordinates) [-pi..pi]
+
+    def estimate_diffculty(self):
+        """ Function that estimate difficulty to detect the object as defined in kitti website"""
+        # height of the bounding box
+        bb_height = np.abs(self.xmax - self.xmin)
+
+        if bb_height >= 40 and self.occlusion == 0 and self.truncation <= 0.15:
+            return "Easy"
+        elif bb_height >= 25 and self.occlusion in [0, 1] and self.truncation <= 0.30:
+            return "Moderate"
+        elif (
+            bb_height >= 25 and self.occlusion in [0, 1, 2] and self.truncation <= 0.50
+        ):
+            return "Hard"
+        else:
+            return "Unknown"
+
+    def print_object(self):
+        print(
+            "Type, truncation, occlusion, alpha: %s, %d, %d, %f"
+            % (self.type, self.truncation, self.occlusion, self.alpha)
+        )
+        print(
+            "2d bbox (x0,y0,x1,y1): %f, %f, %f, %f"
+            % (self.xmin, self.ymin, self.xmax, self.ymax)
+        )
+        print("3d bbox h,w,l: %f, %f, %f" % (self.h, self.w, self.l))
+        print(
+            "3d bbox location, ry: (%f, %f, %f), %f"
+            % (self.t[0], self.t[1], self.t[2], self.ry)
+        )
+        print("Difficulty of estimation: {}".format(self.estimate_diffculty()))
+
+
+def read_label(label_filename):
+    lines = [line.rstrip() for line in open(label_filename)]
+    objects = [Object3d(line) for line in lines]
+    new3dboxes=[]
+    for object in objects:
+        #3D bbox (x, y, z, x_size, y_size, z_size, yaw)
+        new3dbox = [object.t[0], object.t[1], object.t[2], object.t[0],object.h,object.w,object.l,object.ry]
+        new3dboxes.append(new3dbox)
+    return objects, new3dboxes
+
 if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--root_path", default='/mnt/DATA5T/Kitti/raw/2011_09_28/2011_09_28_drive_0161_sync/velodyne_points/data/', help="root folder"
-    )#r"C:\Users\lkk\Documents\Developer\data"
+        "--root_path", default='/mnt/DATA10T/Datasets/Kitti/training/', help="root folder"
+    )
     parser.add_argument(
-        "--lidarfile", default="0000000000.bin", help="Kitti lidar file"
-    )#lidarxyzintensityright000150.bin
+        "--index", default="1", help="Kitti file index"
+    )
     parser.add_argument(
         "--result_path", default="0000000000.bin", help="Kitti lidar file"
     )
     flags = parser.parse_args()
 
     basedir = flags.root_path
-    lidarfile = flags.lidarfile
-    fulllidarfilepath = os.path.join(basedir, lidarfile)
+    idx = int(flags.index)
+
 
     """Load and parse a velodyne binary file."""
-    # scan = np.fromfile(fulllidarfilepath, dtype=np.float32) # vector points
-    # points_with_intensity=scan.reshape((-1, 4))#4 points a group
-    # points = points_with_intensity[:, :3]#115384, 3
+    lidar_dir = os.path.join(basedir, "velodyne")
+    lidar_filename = os.path.join(lidar_dir, "%06d.bin" % (idx))
+    scan = np.fromfile(lidar_filename, dtype=np.float32) # vector points
+    points_with_intensity=scan.reshape((-1, 4))#4 points a group
+    points = points_with_intensity[:, :3]#115384, 3
 
-    lidarresults=np.load('./outputs/lidarresultsnp.npy',allow_pickle=True)
-    #print("npy results length:", len(lidarresults))
-    lidarresult=lidarresults.item()
-    points = lidarresult['points']#x,4 shape, boxes_3d, labels_3d
-    pred_bboxes = lidarresult['boxes_3d']
+    label_dir = os.path.join(basedir, "label_2")
+    label_filename = os.path.join(label_dir, "%06d.txt" % (idx))
+    objects, new3dboxes=read_label(label_filename) #Object3d list
+    #bbox3d (numpy.array, shape=[M, 7]):
+    #            3D bbox (x, y, z, x_size, y_size, z_size, yaw)
 
+    
+    points, pred_bboxes = testmmdetection3dresult()
     filename='test'
     snapshot=True
     vis = Visualizer(points)
-    vis.add_bboxes(bbox3d=pred_bboxes)
+    if pred_bboxes is not None:
+        vis.add_bboxes(bbox3d=pred_bboxes)
     show_path = os.path.join(flags.result_path,
                              f'{filename}_online.png') if snapshot else None
     vis.show(show_path)
