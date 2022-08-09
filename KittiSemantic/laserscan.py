@@ -110,9 +110,9 @@ class LaserScan:
         mind about wanting the projection)
     """
     # laser parameters
-    fov_up = self.proj_fov_up / 180.0 * np.pi      # field of view up in rad
-    fov_down = self.proj_fov_down / 180.0 * np.pi  # field of view down in rad
-    fov = abs(fov_down) + abs(fov_up)  # get field of view total in rad
+    fov_up = self.proj_fov_up / 180.0 * np.pi      # field of view up in rad 3->0.05
+    fov_down = self.proj_fov_down / 180.0 * np.pi  # field of view down in rad -25->-0.436
+    fov = abs(fov_down) + abs(fov_up)  # get field of view total in rad 0.488
 
     # get depth of all points
     depth = np.linalg.norm(self.points, 2, axis=1)

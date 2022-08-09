@@ -5,20 +5,16 @@ import argparse
 import os
 import yaml #pip install PyYAML
 import sys
+from pathlib import Path
+import numpy as np
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))#Current folder
 ROOT_DIR = os.path.dirname(BASE_DIR)#Project root folder
 sys.path.append(ROOT_DIR)
 
 #add __init__.py in KittiSemantic
-from KittiSemantic.laserscan import LaserScan, SemLaserScan
+from WaymoSemantic.waymolaserscan import WaymoLaserScan, WaymoSemLaserScan
 from KittiSemantic.laserscanvis import LaserScanVis
-#import KittiSemantic.laserscan as LaserScan #'module' object is not callable
-#import KittiSemantic.laserscanvis as LaserScanVis
-# from auxiliary.laserscan import LaserScan, SemLaserScan
-# from auxiliary.laserscanvis import LaserScanVis
-
-# ls /mnt/DATA10T/Datasets/KittiSemantic/dataset/sequences/00
-# calib.txt  image_2  image_3  labels  poses.txt  times.txt  velodyne
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("./myvisualize.py")
@@ -26,7 +22,7 @@ if __name__ == '__main__':
         '--dataset', '-d',
         type=str,
         required=False,
-        default="D:\Dataset\KittiSemantic\dataset", #"/mnt/DATA10T/Datasets/KittiSemantic/dataset",#,
+        default="D:\Dataset\WaymoSemantic", #"/mnt/DATA10T/Datasets/KittiSemantic/dataset",#,
         help='Dataset to visualize. No Default',
     )
     parser.add_argument(
@@ -39,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--sequence', '-s',
         type=str,
-        default="00",
+        default="10017090168044687777_6380_000_6400_000",
         required=False,
         help='Sequence to visualize. Defaults to %(default)s',
     )
@@ -56,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ignore_semantics', '-i',
         dest='ignore_semantics',
-        default=False,
+        default=True,
         action='store_true',
         help='Ignore semantics. Visualizes uncolored pointclouds.'
         'Defaults to %(default)s',
@@ -64,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--do_instances', '-di',
         dest='do_instances',
-        default=True,#False,
+        default=False,#False,
         action='store_true',
         help='Visualize instances too. Defaults to %(default)s',
     )
@@ -93,11 +89,12 @@ if __name__ == '__main__':
         quit()
     
     # fix sequence name
-    FLAGS.sequence = '{0:02d}'.format(int(FLAGS.sequence))
+    #FLAGS.sequence = '{0:02d}'.format(int(FLAGS.sequence))
 
     # does sequence folder exist?
-    scan_paths = os.path.join(FLAGS.dataset, "sequences",
-                                FLAGS.sequence, "velodyne")
+    scan_paths = os.path.join(FLAGS.dataset, FLAGS.sequence, "velodyne")
+    # scan_paths = os.path.join(FLAGS.dataset, "sequences",
+    #                             FLAGS.sequence, "velodyne")
     if os.path.isdir(scan_paths):
         print("Sequence folder exists! Using sequence from %s" % scan_paths)
     else:
@@ -110,33 +107,19 @@ if __name__ == '__main__':
     scan_names.sort() #list of Lidar bin files
 
     if not FLAGS.ignore_semantics:
-        if FLAGS.predictions is not None:
-            label_paths = os.path.join(FLAGS.predictions, "sequences",
-                                 FLAGS.sequence, "predictions")
-        else:
-            label_paths = os.path.join(FLAGS.dataset, "sequences",
-                                 FLAGS.sequence, "labels")
-        if os.path.isdir(label_paths):
-            print("Labels folder exists! Using labels from %s" % label_paths)
-        else:
-            print("Labels folder doesn't exist! Exiting...")
-            quit()
-
-        # populate the pointclouds
-        label_names = [os.path.join(dp, f) for dp, dn, fn in os.walk(
-            os.path.expanduser(label_paths)) for f in fn]
-        label_names.sort() #The list of all files of label names
-
-        # check that there are same amount of labels and scans
-        assert(len(label_names) == len(scan_names))
+        seqdatafolder = Path(os.path.join(FLAGS.dataset, FLAGS.sequence))
+        filename = 'alldictsnp.npz'
+        Final_array=np.load(seqdatafolder / filename, allow_pickle=True, mmap_mode='r')
+        data_array=Final_array['arr_0']
+        datadict=data_array.item()
 
     # create a scan
     if FLAGS.ignore_semantics:
-        scan = LaserScan(project=True)  # project all opened scans to spheric proj
+        scan = WaymoLaserScan(project=True)  # project all opened scans to spheric proj
     else:
         color_dict = CFG["color_map"]
         nclasses = len(color_dict)#34classes
-        scan = SemLaserScan(nclasses, color_dict, project=True)
+        scan = WaymoSemLaserScan(nclasses, color_dict, project=True)
     
     # create a visualizer
     semantics = not FLAGS.ignore_semantics #True
