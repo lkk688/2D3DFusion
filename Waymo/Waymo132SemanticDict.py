@@ -111,7 +111,7 @@ def saveimagetofile(image, frame_idx, file_idx, basepath, foldername):
     cv2.imwrite(str(img_path), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
 
 if __name__ == "__main__":
-    base_dir="/data/cmpe249-fa22/Waymo132KittiSematic/" 
+    base_dir="/home/kaikai/HPC249Data/Waymo132KittiSematic/"#"/data/cmpe249-fa22/Waymo132KittiSematic/" 
     base_dir = Path(base_dir)
     filename="train0_10017090168044687777_6380_000_6400_000.npz"
 
