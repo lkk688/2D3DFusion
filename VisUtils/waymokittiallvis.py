@@ -473,12 +473,16 @@ def pltshow_image_with_3Dboxes(cameraid, img, objects, calib, layout, cmap=None)
     img2 = np.copy(img)  # for 3d bbox
     #plt.figure(figsize=(25, 20))
     print("camera id:", cameraid)
+    z_front_min = -3 #0.1 #0.1
     if cameraid ==0:
         for obj in objects:
             if obj.type == "DontCare" or (obj is None):
                 continue
             box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 8x3
-            box3d_pts_2d = calib.project_cam3d_to_image(box3d_pts_3d, cameraid) #return (8,2) array in left image coord.
+            print(box3d_pts_3d)
+            if np.any(box3d_pts_3d[2, :] < z_front_min): #in Kitti, z axis is to the front, if z<0.1 means objs in back of camera
+                continue
+            box3d_pts_2d, _ = calib.project_cam3d_to_image(box3d_pts_3d, cameraid) #return (8,2) array in left image coord.
             #print("obj:", box3d_pts_2d)
             if box3d_pts_2d is not None:
                 colorlabel=INSTANCE3D_ColorCV2[obj.type]
@@ -490,9 +494,11 @@ def pltshow_image_with_3Dboxes(cameraid, img, objects, calib, layout, cmap=None)
                 continue
             #_, box3d_pts_3d = compute_box_3d(obj, calib.P[camera_index]) #get 3D points in label (in camera 0 coordinate), convert to 8 corner points
             box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 
+            # if np.any(box3d_pts_3d[2, :] < z_front_min): #in Kitti, z axis is to the front, if z<0.1 means objs in back of camera
+            #     continue
             box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid) # convert the 3D points to velodyne coordinate
             box3d_pts_3d_cam=calib.project_velo_to_cameraid(box3d_pts_3d_velo,cameraid) # convert from the velodyne coordinate to camera coordinate (cameraid)
-            box3d_pts_2d=calib.project_cam3d_to_image(box3d_pts_3d_cam,cameraid) # project 3D points in cameraid coordinate to the imageid coordinate (2D 8 points)
+            box3d_pts_2d, _=calib.project_cam3d_to_image(box3d_pts_3d_cam,cameraid) # project 3D points in cameraid coordinate to the imageid coordinate (2D 8 points)
             if box3d_pts_2d is not None:
                 print(box3d_pts_2d)
                 colorlabel=INSTANCE3D_ColorCV2[obj.type]
@@ -502,6 +508,7 @@ def pltshow_image_with_3Dboxes(cameraid, img, objects, calib, layout, cmap=None)
     plt.title(cameraname_map[cameraid])
     plt.grid(False)
     plt.axis('on')
+
 
 def load_image(img_filenames, showfig=True):
     imgs=[]
@@ -515,15 +522,36 @@ def load_image(img_filenames, showfig=True):
 def load_velo_scan(velo_filename, dtype=np.float32, n_vec=4, filterpoints=False, point_cloud_range=[0, -15, -5, 90, 15, 4]):
     scan = np.fromfile(velo_filename, dtype=dtype)
     scan = scan.reshape((-1, n_vec))
+    xpoints=scan[:,0]
+    ypoints=scan[:,1]
+    zpoints=scan[:,2]
+    print(f"Xrange: {min(xpoints)} {max(xpoints)}")
+    print(f"Yrange: {min(ypoints)} {max(ypoints)}")
+    print(f"Zrange: {min(zpoints)} {max(zpoints)}")
     if filterpoints:
+        print(f"Filter point range, x: {point_cloud_range[0]}, {point_cloud_range[3]}; y: {point_cloud_range[1]}, {point_cloud_range[4]}; z: {point_cloud_range[2]}, {point_cloud_range[5]}")
         scan=filter_lidarpoints(scan, point_cloud_range) #point_cloud_range #0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
     return scan
+
+def rotx(t):
+    """ 3D Rotation about the x-axis. """
+    c = np.cos(t)
+    s = np.sin(t)
+    return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+
 
 def roty(t):
     """ Rotation about the y-axis. """
     c = np.cos(t)
     s = np.sin(t)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+
+
+def rotz(t):
+    """ Rotation about the z-axis. """
+    c = np.cos(t)
+    s = np.sin(t)
+    return np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
 
 def compute_box_3d(obj, dataset='kitti'):
     """ Takes an object3D
@@ -553,8 +581,8 @@ def compute_box_3d(obj, dataset='kitti'):
     #print(corners_3d)
     # print 'cornsers_3d: ', corners_3d
     # only draw 3d bounding box for objs in front of the camera
-    if np.any(corners_3d[2, :] < 0.1): #in Kitti, z axis is to the front, if z<0.1 means objs in back of camera
-        return np.transpose(corners_3d)
+    # if np.any(corners_3d[2, :] < 0.1): #in Kitti, z axis is to the front, if z<0.1 means objs in back of camera
+    #     return np.transpose(corners_3d)
     
     return np.transpose(corners_3d)
 
@@ -690,9 +718,9 @@ class WaymoCalibration(object):
         """
         pts_3d_rect = self.cart2hom(pts_3d_rect)#nx3 to nx4 by pending 1
         pts_2d = np.dot(pts_3d_rect, np.transpose(self.P[cameraid]))  # nx3
-        pts_2d[:, 0] /= pts_2d[:, 2]
+        pts_2d[:, 0] /= pts_2d[:, 2] #normalize the depth pts_2d[:, 2]
         pts_2d[:, 1] /= pts_2d[:, 2]
-        return pts_2d[:, 0:2]
+        return pts_2d[:, 0:2], pts_2d[:, 2]
     
     #Liar project to image
     def project_velo_to_cameraid_rect(self, pts_3d_velo, cameraid):
@@ -707,66 +735,79 @@ class WaymoCalibration(object):
         """ Input: nx3 points in velodyne coord.
             Output: nx2 points in image2 coord.
         """
+        if pts_3d_velo.shape[1]!=3:
+            print("points dimension is not 3")
+            pts_3d_velo=pts_3d_velo[:,0:3]
         pts_3d_rect = self.project_velo_to_cameraid_rect(pts_3d_velo, cameraid)
         return self.project_cam3d_to_image(pts_3d_rect, cameraid)
     
-    def project_3dcornerboxes_to_image(self,corners_3d, cameraid):
-        """ project the 3d bounding box into the image plane.
+    
 
-        input: pts_3d: nx3 matrix
-                P:      3x4 projection matrix
-        output: pts_2d: nx2 matrix
-
-        P(3x4) dot pts_3d_extended(4xn) = projected_pts_2d(3xn)
-        => normalize projected_pts_2d(2xn)
-
-        <=> pts_3d_extended(nx4) dot P'(4x3) = projected_pts_2d(nx3)
-          => normalize projected_pts_2d(nx2)
-        """
-        # 
-        corners_2d_test = project_to_image(np.transpose(corners_3d), self.P[cameraid])
-        pts_3d = np.transpose(corners_3d) #nx3 matrix
-        corners_2d = self.project_cam3d_to_image(pts_3d, cameraid)#P matrix for cameraid
-        return corners_2d
-
-def project_to_image(pts_3d, P):
+def plotlidar_to_image(pts_3d, img, calib, cameraid=0):
     """ Project 3d points to image plane.
-
-    Usage: pts_2d = projectToImage(pts_3d, P)
-      input: pts_3d: nx3 matrix
-             P:      3x4 projection matrix
-      output: pts_2d: nx2 matrix
-
-      P(3x4) dot pts_3d_extended(4xn) = projected_pts_2d(3xn)
-      => normalize projected_pts_2d(2xn)
-
-      <=> pts_3d_extended(nx4) dot P'(4x3) = projected_pts_2d(nx3)
-          => normalize projected_pts_2d(nx2)
     """
-    n = pts_3d.shape[0]
-    pts_3d_extend = np.hstack((pts_3d, np.ones((n, 1))))
-    # print(('pts_3d_extend shape: ', pts_3d_extend.shape))
-    pts_2d = np.dot(pts_3d_extend, np.transpose(P))  # nx3
-    pts_2d[:, 0] /= pts_2d[:, 2]
-    pts_2d[:, 1] /= pts_2d[:, 2]
-    return pts_2d[:, 0:2]
+    fig = plt.figure(figsize=(12, 6))
+    # draw image
+    plt.imshow(img)
+
+    pts_2d, pts_depth = calib.project_velo_to_image(pts_3d, cameraid) 
+    #step1 project_velo_to_cameraid_rect: transfer velo to cameraid frame, then apply R to camera rect frame 
+    #step2 project_cam3d_to_image: project the 3d points to the camera coordinate
+
+    # remove points outside the image
+    inds = pts_2d[:, 0] > 0
+    inds = np.logical_and(inds, pts_2d[:, 0] < img.shape[1])
+    inds = np.logical_and(inds, pts_2d[:, 1] > 0)
+    inds = np.logical_and(inds, pts_2d[:, 1] < img.shape[0])
+    inds = np.logical_and(inds, pts_depth > 0)
+    
+    plt.scatter(pts_2d[inds, 0], pts_2d[inds, 1], c=-pts_depth[inds], alpha=0.5, s=1, cmap='viridis')
+
+    # fig.patch.set_visible(False)
+    plt.axis('off')
+    plt.tight_layout()
+    #plt.savefig('data/kitti_cloud_to_img.png', bbox_inches='tight')
+    plt.show()
 
 INSTANCE3D_Color = {
     'Car':(0, 1, 0), 'Pedestrian':(0, 1, 1), 'Sign': (1, 1, 0), 'Cyclist':(0.5, 0.5, 0.3)
 }#'Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 'Cyclist', 'Tram','Misc' or 'DontCare'
 
+def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range):
+    fig = mlab.figure(
+        figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
+    )
+    draw_lidar(pc_velo, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=True, point_cloud_range=point_cloud_range)
+    #visualize_pts(pc_velo, fig=fig, show_intensity=True)
+
+    #only draw camera 0's 3D label
+    ref_cameraid=0 #3D labels are annotated in camera 0 frame
+    color = (0, 1, 0)
+    for obj in object3dlabels:
+        if obj.type == "DontCare":
+            continue
+        print(obj.type)
+        # Draw 3d bounding box
+        box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 
+        box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid)
+        print("box3d_pts_3d_velo:", box3d_pts_3d_velo)
+        #draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=color)
+        colorlabel=INSTANCE3D_Color[obj.type]
+        draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type)
+
+    #mlab.show()
 
 if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--root_path", default=r'D:\Dataset\WaymoKittitraining_0000', help="root folder"
+        "--root_path", default='./data/waymokittisample', help="root folder"
     )#'/mnt/DATA10T/Datasets/Kitti/training/' r'.\Kitti\sampledata' 
     parser.add_argument(
-        "--index", default="2079", help="file index"
+        "--index", default="10", help="file index"
     )
     parser.add_argument(
-        "--dataset", default="kitti", help="file index"
+        "--dataset", default="waymokitti", help="file index"
     )
     parser.add_argument(
         "--camera_count", default=5, help="file index"
@@ -791,64 +832,23 @@ if __name__ == "__main__":
 
     #load Lidar points
     dtype=np.float32
-    point_cloud_range=[0, -15, -5, 90, 15, 4] #0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
-    pc_velo=load_velo_scan(lidar_filename, dtype=np.float32, n_vec=4, filterpoints=False, point_cloud_range=point_cloud_range)
+    point_cloud_range=[-100, -30, -5, 100, 30, 5]#[0, -15, -5, 90, 15, 4] #0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
+    pc_velo=load_velo_scan(lidar_filename, dtype=np.float32, n_vec=4, filterpoints=True, point_cloud_range=point_cloud_range)
     ##Each point encodes XYZ + reflectance in Velodyne coordinate: x = forward, y = left, z = up
 
     calib=WaymoCalibration(calibration_file)
 
     object3dlabels=read_label(label_all_file)
-    #print(object3dlabel)
-    box=object3dlabels[0]
-    print(box)
-    data=[box.t[0], box.t[1], box.t[2], box.l, box.w, box.h, box.ry, box.type]#x, y,z
-    print(data)
-    print(box.box2d) #'bbox_xmin', 'bbox_ymin', 'bbox_xmax', 'bbox_ymax'
 
     images=load_image(image_files)
     objectlabels=read_multi_label(labels_files)
     plt_multiimages(images, objectlabels, order=1)
-    # cv2rgb = cv2.cvtColor(images[0], cv2.COLOR_RGB2BGR)
-    # cv2.imshow("Image", cv2rgb)
-    # cv2.waitKey(0)
 
     plt3dbox_images(images,objectlabels,calib)
 
+    plotlidar_to_image(pc_velo, images[0], calib, cameraid=0)
 
-    fig = mlab.figure(
-        figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
-    )
-    draw_lidar(pc_velo, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=True, point_cloud_range=point_cloud_range)
-    #visualize_pts(pc_velo, fig=fig, show_intensity=True)
-
-    #only draw camera 0's 3D label
-    ref_cameraid=0 #3D labels are annotated in camera 0 frame
-    color = (0, 1, 0)
-    for obj in object3dlabels:
-        if obj.type == "DontCare":
-            continue
-        print(obj.type)
-        # Draw 3d bounding box
-        box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 
-        box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid)
-        print("box3d_pts_3d_velo:", box3d_pts_3d_velo)
-        #draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=color)
-        colorlabel=INSTANCE3D_Color[obj.type]
-        draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type)
-
-    # rgb=load_image(image_file)
-    # img_height, img_width, img_channel = rgb.shape
-    # plt.imshow(rgb)
-    # print(data_idx, "image shape: ", rgb.shape)
-
-
-    mlab.show()
-    #draw_lidarpoints(pc_velo, point_cloud_range)
-
-    # label_dir = os.path.join(basedir, "label_2")
-    # label_filename = os.path.join(label_dir, "%06d.txt" % (idx))
-    # objects, new3dboxes=read_label(label_filename) #Object3d list
-    #bbox3d (numpy.array, shape=[M, 7]):
-    #            3D bbox (x, y, z, x_size, y_size, z_size, yaw)
+    pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range)
+    
 
 
