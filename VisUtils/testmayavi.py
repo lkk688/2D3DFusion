@@ -1,5 +1,12 @@
 # import matplotlib
 # matplotlib.use('Agg')
+import cv2
+import sys
+import argparse
+import os
+#import matplotlib.pyplot as plt
+#plt.rcParams['figure.figsize'] = (25, 14)
+#import mayavi.mlab as mlab
 from mayavi import mlab
 
 #test Mayavi
