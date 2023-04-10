@@ -199,7 +199,7 @@ def http_download(local_filename,url):
         print(err)
         return False
 
-def download(dl_folder):
+def download(dl_folder, maxnum=5):
     for i,(url,length) in enumerate(kitti_list):
         fn = url.split('/')[-1]
         local_filename = os.path.join(dl_folder,fn)
@@ -214,10 +214,13 @@ def download(dl_folder):
         if not os.path.exists(local_filename):
             print('Downloading', local_filename)
             http_download(local_filename,url)
+        
+        if i>maxnum:
+            break
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('download_kitti.py')
-    parser.add_argument('-d','--dst', type=str, required=True , help='folder to download kitti')
+    parser.add_argument('-d','--dst', default="/home/lkk/Documents/Dataset/Kitti", type=str, help='folder to download kitti')
     args = parser.parse_args()
     download(args.dst)
     print('Done')

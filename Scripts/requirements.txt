@@ -1,0 +1,45 @@
+#pip install -r ./Scripts/requirements.txt 
+# Base ----------------------------------------
+matplotlib
+numpy
+#opencv-python>=4.6.0
+Pillow
+PyYAML
+requests
+scipy
+# torch>=1.7.0
+# torchvision>=0.8.1
+tqdm
+
+# Logging -------------------------------------
+tensorboard
+# clearml
+# comet
+
+# Plotting ------------------------------------
+pandas
+seaborn
+
+# Export --------------------------------------
+coremltools  # CoreML export
+onnx  # ONNX export
+onnx-simplifier  # ONNX simplifier
+nvidia-pyindex  # TensorRT export
+nvidia-tensorrt  # TensorRT export
+#scikit-learn==0.19.2  # CoreML quantization
+#tensorflow>=2.4.1  # TF exports (-cpu, -aarch64, -macos)
+#tensorflowjs>=3.9.0  # TF.js export
+openvino-dev  # OpenVINO export
+
+# Extras --------------------------------------
+ipython  # interactive notebook
+psutil  # system utilization
+thop  # FLOPs computation
+# albumentations>=1.0.3
+pycocotools  # COCO mAP
+# roboflow
+
+#3D related
+open3d #http://www.open3d.org/docs/release/getting_started.html
+mayavi #https://docs.enthought.com/mayavi/mayavi/installation.html
+PyQt5

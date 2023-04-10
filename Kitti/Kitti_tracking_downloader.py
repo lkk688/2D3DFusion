@@ -22,7 +22,7 @@ tracking_dir_zip_tags = ['image_2', 'image_3', 'velodyne', 'calib', 'oxts', 'lab
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--kitti_root', type=str, default=os.path.join('/mnt/DATA5T', 'Kitti')) #/mnt/DATA5T/Kitti, /DATA5T/Datasets
+    parser.add_argument('--kitti_root', type=str, default=os.path.join('/home/lkk/Documents/Dataset/', 'Kitti')) #/mnt/DATA5T/Kitti, /DATA5T/Datasets
     # parser.add_argument('--root', type=str, default=None, help='data folder')
 
     return parser.parse_args(sys.argv[1:])

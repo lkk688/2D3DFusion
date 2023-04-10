@@ -1,5 +1,15 @@
 # 3DDepth
 
+## Kitti data preparation
+Use downloader scripts in Kitti folder to download Kitti raw data and Kitti tracking data. 
+* [Kitti_raw_downloader python](Kitti/Kitti_raw_downloader.py) is the python code to download [Kitti Raw data](https://www.cvlibs.net/datasets/kitti/raw_data.php), you need to specify the download path.
+* [Kitti_raw_downloader script](Kitti/Kitti_raw_downloader.sh) is used to download all [Kitti Raw data](https://www.cvlibs.net/datasets/kitti/raw_data.php), [Kitti_raw_partialdownloader](Kitti/Kitti_raw_partialdownloader.sh) is used to download the selected folder of the raw data. These scripts file need to be put in the dataset folder, e.g., 
+```bash
+/Datasets/Kitti$ ./Kitti_raw_partialdownloader.sh
+```
+* [Kitti_tracking_downloader python](Kitti/Kitti_tracking_downloader.py) is the python code to download [Kitti multi-object tracking dataset](https://www.cvlibs.net/datasets/kitti/eval_tracking.php).
+
+
 ## Kitti data format
 Kitti data collection platform [link](http://www.cvlibs.net/datasets/kitti/setup.php):
 ![image](https://user-images.githubusercontent.com/6676586/111712193-5e6a3000-880a-11eb-8218-cabd7c22862d.png)
