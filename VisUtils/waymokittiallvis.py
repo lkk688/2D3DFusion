@@ -795,7 +795,7 @@ def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range):
         colorlabel=INSTANCE3D_Color[obj.type]
         draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type)
 
-    #mlab.show()
+    mlab.show()
 
 if __name__ == "__main__":
     # Parser
@@ -849,6 +849,8 @@ if __name__ == "__main__":
     plotlidar_to_image(pc_velo, images[0], calib, cameraid=0)
 
     pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range)
+
+    print("end of demo")
     
 
 
