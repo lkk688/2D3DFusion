@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 
-
+#Anchor and gt's code and decode in Loss function
 class ResidualCoder(object):
     def __init__(self, code_size=7, encode_angle_by_sincos=False, **kwargs):
         super().__init__()
@@ -20,19 +20,25 @@ class ResidualCoder(object):
         Returns:
 
         """
-        anchors[:, 3:6] = torch.clamp_min(anchors[:, 3:6], min=1e-5)
-        boxes[:, 3:6] = torch.clamp_min(boxes[:, 3:6], min=1e-5)
+        anchors[:, 3:6] = torch.clamp_min(anchors[:, 3:6], min=1e-5) #clamp anchors' [dx,dy,dz], Letting min_value=min
+        boxes[:, 3:6] = torch.clamp_min(boxes[:, 3:6], min=1e-5) #clamp boxes' [dx,dy,dz], Letting min_value=min
 
-        xa, ya, za, dxa, dya, dza, ra, *cas = torch.split(anchors, 1, dim=-1)
+        # If split_size_or_sections is an integer type, then tensor will be split into equally sized chunks (if possible). 
+        # Last chunk will be smaller if the tensor size along the given dimension dim is not divisible by split_size.
+        # Splits the tensor into chunks.
+        xa, ya, za, dxa, dya, dza, ra, *cas = torch.split(anchors, 1, dim=-1) #split_size_or_sections=1
         xg, yg, zg, dxg, dyg, dzg, rg, *cgs = torch.split(boxes, 1, dim=-1)
 
+        #anchor's diagonal distance
         diagonal = torch.sqrt(dxa ** 2 + dya ** 2)
-        xt = (xg - xa) / diagonal
-        yt = (yg - ya) / diagonal
-        zt = (zg - za) / dza
-        dxt = torch.log(dxg / dxa)
-        dyt = torch.log(dyg / dya)
-        dzt = torch.log(dzg / dza)
+
+        #calculate the loss Δx,Δy,Δz,Δw,Δl,Δh,Δθ
+        xt = (xg - xa) / diagonal # Δx
+        yt = (yg - ya) / diagonal # Δy
+        zt = (zg - za) / dza # Δz
+        dxt = torch.log(dxg / dxa) # Δw
+        dyt = torch.log(dyg / dya) # Δl
+        dzt = torch.log(dzg / dza) # Δh
         if self.encode_angle_by_sincos:
             rt_cos = torch.cos(rg) - torch.cos(ra)
             rt_sin = torch.sin(rg) - torch.sin(ra)
@@ -52,13 +58,15 @@ class ResidualCoder(object):
         Returns:
 
         """
-        xa, ya, za, dxa, dya, dza, ra, *cas = torch.split(anchors, 1, dim=-1)
+        xa, ya, za, dxa, dya, dza, ra, *cas = torch.split(anchors, 1, dim=-1)  # (B, N, 1)-->(1, 321408, 1)
         if not self.encode_angle_by_sincos:
             xt, yt, zt, dxt, dyt, dzt, rt, *cts = torch.split(box_encodings, 1, dim=-1)
         else:
             xt, yt, zt, dxt, dyt, dzt, cost, sint, *cts = torch.split(box_encodings, 1, dim=-1)
 
         diagonal = torch.sqrt(dxa ** 2 + dya ** 2)
+
+        #loss's inverse calculation, g means gt, a means anchor
         xg = xt * diagonal + xa
         yg = yt * diagonal + ya
         zg = zt * dza + za
