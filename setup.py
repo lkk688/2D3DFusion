@@ -22,13 +22,13 @@ if __name__ == '__main__':
         install_requires=[
             'numpy',
             'llvmlite',
-            'numba',
+            #'numba',
             'tensorboardX',
             'easydict',
             'pyyaml',
             'scikit-image',
             'tqdm',
-            'SharedArray',
+            'SharedArray', #https://pypi.org/project/SharedArray/
             # 'spconv',  # installed independently 
         ],
 
