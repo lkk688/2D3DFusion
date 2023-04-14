@@ -35,8 +35,8 @@ class DatasetTemplate(torch_data.Dataset):
             training=self.training, num_point_features=self.point_feature_encoder.num_point_features
         )
 
-        self.grid_size = self.data_processor.grid_size
-        self.voxel_size = self.data_processor.voxel_size
+        self.grid_size = self.data_processor.grid_size #[432, 496, 1] = POINT_CLOUD_RANGE/voxel_size
+        self.voxel_size = self.data_processor.voxel_size #[0.16, 0.16, 4]meters
         self.total_epochs = 0
         self._merge_all_iters_to_one_epoch = False
 

@@ -35,18 +35,18 @@ class Detector3DTemplate(nn.Module):
     def build_networks(self):
         model_info_dict = {
             'module_list': [],
-            'num_rawpoint_features': self.dataset.point_feature_encoder.num_point_features,
-            'num_point_features': self.dataset.point_feature_encoder.num_point_features,
+            'num_rawpoint_features': self.dataset.point_feature_encoder.num_point_features, #4
+            'num_point_features': self.dataset.point_feature_encoder.num_point_features, #4
             'grid_size': self.dataset.grid_size,
             'point_cloud_range': self.dataset.point_cloud_range,
             'voxel_size': self.dataset.voxel_size,
             'depth_downsample_factor': self.dataset.depth_downsample_factor
         }
-        for module_name in self.module_topology:
+        for module_name in self.module_topology: #getattr: returns the value of the named attribute of an object.
             module, model_info_dict = getattr(self, 'build_%s' % module_name)(
                 model_info_dict=model_info_dict
-            )
-            self.add_module(module_name, module)
+            )#some module are None, e.g., backbone_3d
+            self.add_module(module_name, module) #nn.Module->add_module to add submodules
         return model_info_dict['module_list']
 
     def build_vfe(self, model_info_dict):
@@ -330,7 +330,7 @@ class Detector3DTemplate(nn.Module):
     def _load_state_dict(self, model_state_disk, *, strict=True):
         state_dict = self.state_dict()  # local cache of state_dict
 
-        spconv_keys = find_all_spconv_keys(self)
+        spconv_keys = find_all_spconv_keys(self) #empty for PointPillar
 
         update_model_state = {}
         for key, val in model_state_disk.items():

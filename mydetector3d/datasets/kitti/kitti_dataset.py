@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 from skimage import io
+from pathlib import Path
 
 from . import kitti_utils
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
@@ -35,17 +36,17 @@ class KittiDataset(DatasetTemplate):
     def include_kitti_data(self, mode):
         if self.logger is not None:
             self.logger.info('Loading KITTI dataset')
-        kitti_infos = []
-
+        kitti_infos = [] #new list
+        #kitti_infos_train.pkl
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path
             if not info_path.exists():
                 continue
             with open(info_path, 'rb') as f:
-                infos = pickle.load(f)
+                infos = pickle.load(f) #all data related information (image and lidar data not included)
                 kitti_infos.extend(infos)
 
-        self.kitti_infos.extend(kitti_infos)
+        self.kitti_infos.extend(kitti_infos) #5984 files/frames
 
         if self.logger is not None:
             self.logger.info('Total samples for KITTI dataset: %d' % (len(kitti_infos)))
