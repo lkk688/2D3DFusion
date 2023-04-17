@@ -1,4 +1,6 @@
 #import _init_path
+from scipy.fft import fft, ifft, fftfreq, fftshift #solve the ImportError: /cm/local/apps/gcc/11.2.0/lib64/libstdc++.so.6: version `GLIBCXX_3.4.30' not found
+import PIL
 import argparse
 import datetime
 import glob
@@ -18,22 +20,23 @@ from mydetector3d.tools.optimization import build_optimizer, build_scheduler
 from mydetector3d.tools.train_utils import train_model
 #.tools.train_utils import train_model
 
-
+#output/kitti_models/pointpillar/0413/ckpt/checkpoint_epoch_128.pth
+#/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/pointpillar_newaugs.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
-    parser.add_argument('--epochs', type=int, default=32, required=False, help='number of epochs to train for')
+    parser.add_argument('--epochs', type=int, default=256, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0413', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='output/kitti_models/pointpillar/0413/ckpt/checkpoint_epoch_16.pth', help='checkpoint to start from')
-    parser.add_argument('--pretrained_model', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth', help='pretrained_model')
+    parser.add_argument('--extra_tag', type=str, default='0415', help='extra tag for this experiment')
+    parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
+    parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
     parser.add_argument('--sync_bn', action='store_true', default=False, help='whether to use sync bn')
     parser.add_argument('--fix_random_seed', action='store_true', default=False, help='')
-    parser.add_argument('--ckpt_save_interval', type=int, default=2, help='number of training epochs')
+    parser.add_argument('--ckpt_save_interval', type=int, default=8, help='number of training epochs')
     parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
     parser.add_argument('--max_ckpt_save_num', type=int, default=30, help='max number of saved checkpoint')
     parser.add_argument('--merge_all_iters_to_one_epoch', action='store_true', default=False, help='')

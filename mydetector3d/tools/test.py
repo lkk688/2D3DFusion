@@ -1,4 +1,5 @@
 #import _init_path
+from scipy.fft import fft, ifft, fftfreq, fftshift #solve the ImportError: /cm/local/apps/gcc/11.2.0/lib64/libstdc++.so.6: version `GLIBCXX_3.4.30' not found
 import argparse
 import datetime
 import glob
@@ -17,16 +18,30 @@ from mydetector3d.datasets import build_dataloader
 from mydetector3d.models import build_network
 from mydetector3d.utils import common_utils
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "1,2,3" #"0,1"
+
+#'/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth'
+#'mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml'
+#'/home/010796032/3DObject/3DDepth/output/kitti_models/pointpillar/0413/ckpt/latest_model.pth'
+
+#Second
+#'mydetector3d/tools/cfgs/kitti_models/second_multihead.yaml'
+#/home/010796032/3DObject/3DDepth/output/kitti_models/second_multihead/0415/ckpt/checkpoint_epoch_256.pth
+
+#cfg_file: 'mydetector3d/tools/cfgs/kitti_models/second.yaml'
+#--ckpt: '/home/010796032/3DObject/modelzoo_openpcdet/second_7862.pth'
+#pretrained_model: None
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/second.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='default', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth', help='checkpoint to start from')
-    parser.add_argument('--pretrained_model', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth', help='pretrained_model')
+    parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/second_7862.pth', help='checkpoint to start from')
+    parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
     parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
@@ -44,7 +59,7 @@ def parse_config():
     args = parser.parse_args()
 
     cfg_from_yaml_file(args.cfg_file, cfg)
-    cfg.TAG = Path(args.cfg_file).stem
+    cfg.TAG = Path(args.cfg_file).stem #Returns the substring from the beginning of filename: pointpillar
     cfg.EXP_GROUP_PATH = '/'.join(args.cfg_file.split('/')[1:-1])  # remove 'cfgs' and 'xxxx.yaml'
 
     np.random.seed(1024)

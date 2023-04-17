@@ -47,7 +47,7 @@ DATA_CONFIG:
             - NAME: random_world_scaling
               WORLD_SCALE_RANGE: [0.95, 1.05]
 
-            - NAME: random_local_pyramid_aug
+            - NAME: random_local_pyramid_aug #new added augumentation
               DROP_PROB: 0.25
               SPARSIFY_PROB: 0.05
               SPARSIFY_MAX_NUM: 50

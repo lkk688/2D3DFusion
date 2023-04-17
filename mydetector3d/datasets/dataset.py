@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict #when key not exist, return defaultdict not key error
 from pathlib import Path
 
 import numpy as np
@@ -13,7 +13,7 @@ from .processor.point_feature_encoder import PointFeatureEncoder
 class DatasetTemplate(torch_data.Dataset):
     def __init__(self, dataset_cfg=None, class_names=None, training=True, root_path=None, logger=None):
         super().__init__()
-        self.dataset_cfg = dataset_cfg
+        self.dataset_cfg = dataset_cfg #dataset configuration file
         self.training = training
         self.class_names = class_names
         self.logger = logger
@@ -23,13 +23,16 @@ class DatasetTemplate(torch_data.Dataset):
             return
 
         self.point_cloud_range = np.array(self.dataset_cfg.POINT_CLOUD_RANGE, dtype=np.float32)
+        #Create feature encoder
         self.point_feature_encoder = PointFeatureEncoder(
             self.dataset_cfg.POINT_FEATURE_ENCODING,
             point_cloud_range=self.point_cloud_range
         )
+        #Augmentation
         self.data_augmentor = DataAugmentor(
             self.root_path, self.dataset_cfg.DATA_AUGMENTOR, self.class_names, logger=self.logger
         ) if self.training else None
+        #Pre-processing
         self.data_processor = DataProcessor(
             self.dataset_cfg.DATA_PROCESSOR, point_cloud_range=self.point_cloud_range,
             training=self.training, num_point_features=self.point_feature_encoder.num_point_features
@@ -147,12 +150,13 @@ class DatasetTemplate(torch_data.Dataset):
                 gt_names: optional, (N), string
                 use_lead_xyz: bool
                 voxels: optional (num_voxels, max_points_per_voxel, 3 + C)
-                voxel_coords: optional (num_voxels, 3)
+                voxel_coords: optional (num_voxels, 3)  int32 tensor. zyx format
                 voxel_num_points: optional (num_voxels)
                 ...
         """
-        if self.training:
+        if self.training: # data augumentation in training
             assert 'gt_boxes' in data_dict, 'gt_boxes should be provided for training'
+            #bool array, if class in class_names=true, otherwise=false, not all class in dataset is used.
             gt_boxes_mask = np.array([n in self.class_names for n in data_dict['gt_names']], dtype=np.bool_)
             
             if 'calib' in data_dict:
@@ -160,40 +164,49 @@ class DatasetTemplate(torch_data.Dataset):
             data_dict = self.data_augmentor.forward(
                 data_dict={
                     **data_dict,
-                    'gt_boxes_mask': gt_boxes_mask
+                    'gt_boxes_mask': gt_boxes_mask #new added key-value
                 }
             )
             if 'calib' in data_dict:
                 data_dict['calib'] = calib
+        
+        #Filter gt_boxes
         if data_dict.get('gt_boxes', None) is not None:
+            #return gt_names with class_name in class_names, do not need others
             selected = common_utils.keep_arrays_by_name(data_dict['gt_names'], self.class_names)
             data_dict['gt_boxes'] = data_dict['gt_boxes'][selected]
             data_dict['gt_names'] = data_dict['gt_names'][selected]
+
+            #convert gt_names to index
             gt_classes = np.array([self.class_names.index(n) + 1 for n in data_dict['gt_names']], dtype=np.int32)
+            #add gt_classes (index) to gt_boxes
             gt_boxes = np.concatenate((data_dict['gt_boxes'], gt_classes.reshape(-1, 1).astype(np.float32)), axis=1)
             data_dict['gt_boxes'] = gt_boxes
 
             if data_dict.get('gt_boxes2d', None) is not None:
-                data_dict['gt_boxes2d'] = data_dict['gt_boxes2d'][selected]
+                data_dict['gt_boxes2d'] = data_dict['gt_boxes2d'][selected] #add boxes2d
 
         if data_dict.get('points', None) is not None:
-            data_dict = self.point_feature_encoder.forward(data_dict)
+            data_dict = self.point_feature_encoder.forward(data_dict) #do feature encoder for points
 
+        #pre-processing for the pointsm remove out of range ponts, shuffle, and convert to voxel
         data_dict = self.data_processor.forward(
             data_dict=data_dict
         )
 
-        if self.training and len(data_dict['gt_boxes']) == 0:
+        if self.training and len(data_dict['gt_boxes']) == 0: #processing for the case of no gt_boxes
             new_index = np.random.randint(self.__len__())
             return self.__getitem__(new_index)
 
-        data_dict.pop('gt_names', None)
+        data_dict.pop('gt_names', None) #delete the gt_names
 
         return data_dict
 
     @staticmethod
     def collate_batch(batch_list, _unused=False):
+        #when key is not exist, defaultdict return a default (list return an empty list)
         data_dict = defaultdict(list)
+        #merge samples in the batch based on Key-value
         for cur_sample in batch_list:
             for key, val in cur_sample.items():
                 data_dict[key].append(val)
@@ -201,8 +214,14 @@ class DatasetTemplate(torch_data.Dataset):
         ret = {}
         batch_size_ratio = 1
 
+        #merge the value based on key, make the data size the same (pad 0)
+        #"points": (61340, 4), pad 0 col in left, become (61340, 5)
+        #"voxel_coords": (14290, 3) pad 0 col in left to (14290, 4)
         for key, val in data_dict.items():
             try:
+                # voxels: optional (num_voxels, max_points_per_voxel, 3 + C)
+                # voxel_coords: optional (num_voxels, 3)
+                # voxel_num_points: optional (num_voxels)
                 if key in ['voxels', 'voxel_num_points']:
                     if isinstance(val[0], list):
                         batch_size_ratio = len(val[0])
@@ -213,14 +232,15 @@ class DatasetTemplate(torch_data.Dataset):
                     if isinstance(val[0], list):
                         val =  [i for item in val for i in item]
                     for i, coor in enumerate(val):
+                        #add index in front of each coordinate, (1,0): col add one value (i) in front 
                         coor_pad = np.pad(coor, ((0, 0), (1, 0)), mode='constant', constant_values=i)
                         coors.append(coor_pad)
                     ret[key] = np.concatenate(coors, axis=0)
                 elif key in ['gt_boxes']:
-                    max_gt = max([len(x) for x in val])
-                    batch_gt_boxes3d = np.zeros((batch_size, max_gt, val[0].shape[-1]), dtype=np.float32)
+                    max_gt = max([len(x) for x in val]) #max 3D box in each batch
+                    batch_gt_boxes3d = np.zeros((batch_size, max_gt, val[0].shape[-1]), dtype=np.float32) #empty box3d matrix (B,N,7)
                     for k in range(batch_size):
-                        batch_gt_boxes3d[k, :val[k].__len__(), :] = val[k]
+                        batch_gt_boxes3d[k, :val[k].__len__(), :] = val[k] #k-th frame in the batch
                     ret[key] = batch_gt_boxes3d
 
                 elif key in ['roi_boxes']:
@@ -272,7 +292,7 @@ class DatasetTemplate(torch_data.Dataset):
                                            constant_values=pad_value)
 
                         images.append(image_pad)
-                    ret[key] = np.stack(images, axis=0)
+                    ret[key] = np.stack(images, axis=0) # (B, H, W, C)
                 elif key in ['calib']:
                     ret[key] = val
                 elif key in ["points_2d"]:

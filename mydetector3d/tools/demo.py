@@ -68,7 +68,7 @@ def parse_config():
     parser.add_argument('--data_path', type=str, default='/data/cmpe249-fa22/kitti/testing/velodyne',
                         help='specify the point cloud data file or directory')
     parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth', help='specify the pretrained model')
-    parser.add_argument('--ext', type=str, default='.bin', help='specify the extension of your point cloud data file')
+    parser.add_argument('--ext', type=str, default='.bin', help='specify the extension of your point cloud data file (.bin or npy)')
 
     args = parser.parse_args()
 
@@ -76,6 +76,10 @@ def parse_config():
 
     return args, cfg
 
+# If you doesn't have the intensity information, just set them to zeros. 
+# If you have the intensity information, you should normalize them to [0, 1].
+# points[:, 3] = 0 
+# np.save(`my_data.npy`, points) 
 
 def main():
     print("Current directory", os.getcwd())
