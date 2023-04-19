@@ -25,14 +25,14 @@ class My3Dmodel(Detector3DTemplate):
 
         map_to_bev_module, model_info_dict = self.build_map_to_bev_module(model_info_dict=model_info_dict) #PointPillarScatter
         self.add_module('map_to_bev_module', map_to_bev_module)#nn.module add_module
-        print("Num point features after BEV", model_info_dict['num_point_features']) #64 
+        print("num_bev_features features after BEV", model_info_dict['num_bev_features']) 
         #model_info_dict['num_bev_features'] = map_to_bev_module.num_bev_features
 
         #pfe_module, model_info_dict = self.build_pfe(model_info_dict=model_info_dict) #None for PointPillar
 
         backbone_2d_module, model_info_dict = self.build_backbone_2d(model_info_dict=model_info_dict) #BaseBEVBackbone
         self.add_module('backbone_2d', backbone_2d_module)#nn.module add_module
-        print("Num point features after backbone2d", model_info_dict['num_point_features']) #64 num_bev_features =384
+        print("num_bev_features features after backbone2d", model_info_dict['num_bev_features']) #64 num_bev_features =384
         #model_info_dict['num_bev_features'] = backbone_2d_module.num_bev_features
 
         dense_head_module, model_info_dict = self.build_dense_head(model_info_dict=model_info_dict) #AnchorHeadSingle
