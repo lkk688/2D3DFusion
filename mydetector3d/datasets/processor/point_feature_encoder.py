@@ -6,7 +6,7 @@ class PointFeatureEncoder(object):
         super().__init__()
         self.point_encoding_config = config
         assert list(self.point_encoding_config.src_feature_list[0:3]) == ['x', 'y', 'z']
-        self.used_feature_list = self.point_encoding_config.used_feature_list
+        self.used_feature_list = self.point_encoding_config.used_feature_list #x,y,z,intensity
         self.src_feature_list = self.point_encoding_config.src_feature_list
         self.point_cloud_range = point_cloud_range
 

@@ -53,8 +53,8 @@ class PillarVFE(VFETemplate):
     def __init__(self, model_cfg, num_point_features, voxel_size, point_cloud_range, **kwargs):
         super().__init__(model_cfg=model_cfg)
 
-        self.use_norm = self.model_cfg.USE_NORM
-        self.with_distance = self.model_cfg.WITH_DISTANCE
+        self.use_norm = self.model_cfg.USE_NORM #True
+        self.with_distance = self.model_cfg.WITH_DISTANCE #False
         self.use_absolute_xyz = self.model_cfg.USE_ABSLOTE_XYZ
         num_point_features += 6 if self.use_absolute_xyz else 3
         #10 features:  xyzintensity (4)  points_mean(3) relative to center (3)
@@ -62,18 +62,18 @@ class PillarVFE(VFETemplate):
         if self.with_distance:#using distance as feature sqrt(x^2+y^2+z^2)
             num_point_features += 1
 
-        self.num_filters = self.model_cfg.NUM_FILTERS
+        self.num_filters = self.model_cfg.NUM_FILTERS #[64]
         assert len(self.num_filters) > 0
-        num_filters = [num_point_features] + list(self.num_filters)
+        num_filters = [num_point_features] + list(self.num_filters) #[10, 64]
 
         pfn_layers = []
-        for i in range(len(num_filters) - 1):
-            in_filters = num_filters[i]
-            out_filters = num_filters[i + 1]
+        for i in range(len(num_filters) - 1): #len=1
+            in_filters = num_filters[i] #10
+            out_filters = num_filters[i + 1] #64
             pfn_layers.append(
                 PFNLayer(in_filters, out_filters, self.use_norm, last_layer=(i >= len(num_filters) - 2))
             )
-        self.pfn_layers = nn.ModuleList(pfn_layers)
+        self.pfn_layers = nn.ModuleList(pfn_layers) #only one layer
 
         self.voxel_x = voxel_size[0] #0.16m
         self.voxel_y = voxel_size[1] #0.16m

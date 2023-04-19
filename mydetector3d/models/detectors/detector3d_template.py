@@ -177,17 +177,21 @@ class Detector3DTemplate(nn.Module):
 
     def post_processing(self, batch_dict):
         """
+        filter box and cls based in index and mask
+        perform NMS
+        calculate recal
+        return prediction results in batch
         Args:
             batch_dict:
                 batch_size:
-                batch_cls_preds: (B, num_boxes, num_classes | 1) or (N1+N2+..., num_classes | 1)
+                batch_cls_preds: (B, num_boxes, num_classes | 1) or (N1+N2+..., num_classes | 1) #class prediction
                                 or [(B, num_boxes, num_class1), (B, num_boxes, num_class2) ...]
                 multihead_label_mapping: [(num_class1), (num_class2), ...]
-                batch_box_preds: (B, num_boxes, 7+C) or (N1+N2+..., 7+C)
-                cls_preds_normalized: indicate whether batch_cls_preds is normalized
-                batch_index: optional (N1+N2+...)
-                has_class_labels: True/False
-                roi_labels: (B, num_rois)  1 .. num_classes
+                batch_box_preds: (B, num_boxes, 7+C) or (N1+N2+..., 7+C) #bounding box prediction
+                cls_preds_normalized: indicate whether batch_cls_preds is normalized 
+                batch_index: optional (N1+N2+...) #e.g., [1 1 1 1 1 1 1 2 2 2 2 2....]
+                has_class_labels: True/False # contains class label
+                roi_labels: (B, num_rois)  1 .. num_classes #roi label
                 batch_pred_labels: (B, num_boxes, 1)
         Returns:
 
@@ -196,15 +200,16 @@ class Detector3DTemplate(nn.Module):
         batch_size = batch_dict['batch_size']
         recall_dict = {}
         pred_dicts = []
+        #process each point frame in the batch
         for index in range(batch_size):
             if batch_dict.get('batch_index', None) is not None:
                 assert batch_dict['batch_box_preds'].shape.__len__() == 2
-                batch_mask = (batch_dict['batch_index'] == index)
+                batch_mask = (batch_dict['batch_index'] == index) #only select matched index in batch
             else:
                 assert batch_dict['batch_box_preds'].shape.__len__() == 3
                 batch_mask = index
 
-            box_preds = batch_dict['batch_box_preds'][batch_mask]
+            box_preds = batch_dict['batch_box_preds'][batch_mask] #select box based mask
             src_box_preds = box_preds
             
             if not isinstance(batch_dict['batch_cls_preds'], list):

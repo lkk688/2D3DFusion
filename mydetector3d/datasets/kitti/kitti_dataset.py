@@ -24,10 +24,10 @@ class KittiDataset(DatasetTemplate):
         super().__init__(
             dataset_cfg=dataset_cfg, class_names=class_names, training=training, root_path=root_path, logger=logger
         )
-        self.split = self.dataset_cfg.DATA_SPLIT[self.mode]
+        self.split = self.dataset_cfg.DATA_SPLIT[self.mode] #'val'
         self.root_split_path = self.root_path / ('training' if self.split != 'test' else 'testing')
 
-        split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
+        split_dir = self.root_path / 'ImageSets' / (self.split + '.txt') #select kitti/ImageSets/val.txt
         self.sample_id_list = [x.strip() for x in open(split_dir).readlines()] if split_dir.exists() else None
 
         self.kitti_infos = []
@@ -37,6 +37,11 @@ class KittiDataset(DatasetTemplate):
         if self.logger is not None:
             self.logger.info('Loading KITTI dataset')
         kitti_infos = [] #new list
+        '''   
+        INFO_PATH: {
+        'train': [kitti_infos_train.pkl],
+        'test': [kitti_infos_val.pkl],}
+        '''
         #kitti_infos_train.pkl
         for info_path in self.dataset_cfg.INFO_PATH[mode]:
             info_path = self.root_path / info_path

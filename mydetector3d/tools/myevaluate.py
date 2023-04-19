@@ -1,4 +1,3 @@
-#import _init_path
 from scipy.fft import fft, ifft, fftfreq, fftshift #solve the ImportError: /cm/local/apps/gcc/11.2.0/lib64/libstdc++.so.6: version `GLIBCXX_3.4.30' not found
 import argparse
 import datetime
@@ -35,11 +34,11 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "2,3" #"0,1"
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/my3dmodel.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='default', help='extra tag for this experiment')
+    parser.add_argument('--extra_tag', type=str, default='myeva', help='extra tag for this experiment')
     parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth', help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
@@ -51,8 +50,8 @@ def parse_config():
     parser.add_argument('--max_waiting_mins', type=int, default=30, help='max waiting minutes')
     parser.add_argument('--start_epoch', type=int, default=0, help='')
     parser.add_argument('--eval_tag', type=str, default='default', help='eval tag for this experiment')
-    parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
-    parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
+    #parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
+    #parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
     parser.add_argument('--save_to_file', action='store_true', default=False, help='')
     parser.add_argument('--infer_time', action='store_true', default=False, help='calculate inference latency')
 
@@ -60,7 +59,8 @@ def parse_config():
 
     cfg_from_yaml_file(args.cfg_file, cfg)
     cfg.TAG = Path(args.cfg_file).stem #Returns the substring from the beginning of filename: pointpillar
-    cfg.EXP_GROUP_PATH = '/'.join(args.cfg_file.split('/')[1:-1])  # remove 'cfgs' and 'xxxx.yaml'
+    #cfg.EXP_GROUP_PATH = '/'.join(args.cfg_file.split('/')[1:-1])  # remove 'cfgs' and 'xxxx.yaml'
+    cfg.EXP_GROUP_PATH = '/'.join(args.cfg_file.split('/')[-2:-1])# get kitti_models
 
     np.random.seed(1024)
 
@@ -82,73 +82,17 @@ def eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id
         result_dir=eval_output_dir
     )
 
-
-def get_no_evaluated_ckpt(ckpt_dir, ckpt_record_file, args):
-    ckpt_list = glob.glob(os.path.join(ckpt_dir, '*checkpoint_epoch_*.pth'))
-    ckpt_list.sort(key=os.path.getmtime)
-    evaluated_ckpt_list = [float(x.strip()) for x in open(ckpt_record_file, 'r').readlines()]
-
-    for cur_ckpt in ckpt_list:
-        num_list = re.findall('checkpoint_epoch_(.*).pth', cur_ckpt)
-        if num_list.__len__() == 0:
-            continue
-
-        epoch_id = num_list[-1]
-        if 'optim' in epoch_id:
-            continue
-        if float(epoch_id) not in evaluated_ckpt_list and int(float(epoch_id)) >= args.start_epoch:
-            return epoch_id, cur_ckpt
-    return -1, None
-
-
-def repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=False):
-    # evaluated ckpt record
-    ckpt_record_file = eval_output_dir / ('eval_list_%s.txt' % cfg.DATA_CONFIG.DATA_SPLIT['test'])
-    with open(ckpt_record_file, 'a'):
-        pass
-
-    # tensorboard log
-    if cfg.LOCAL_RANK == 0:
-        tb_log = SummaryWriter(log_dir=str(eval_output_dir / ('tensorboard_%s' % cfg.DATA_CONFIG.DATA_SPLIT['test'])))
-    total_time = 0
-    first_eval = True
-
-    while True:
-        # check whether there is checkpoint which is not evaluated
-        cur_epoch_id, cur_ckpt = get_no_evaluated_ckpt(ckpt_dir, ckpt_record_file, args)
-        if cur_epoch_id == -1 or int(float(cur_epoch_id)) < args.start_epoch:
-            wait_second = 30
-            if cfg.LOCAL_RANK == 0:
-                print('Wait %s seconds for next check (progress: %.1f / %d minutes): %s \r'
-                      % (wait_second, total_time * 1.0 / 60, args.max_waiting_mins, ckpt_dir), end='', flush=True)
-            time.sleep(wait_second)
-            total_time += 30
-            if total_time > args.max_waiting_mins * 60 and (first_eval is False):
-                break
-            continue
-
-        total_time = 0
-        first_eval = False
-
-        model.load_params_from_file(filename=cur_ckpt, logger=logger, to_cpu=dist_test)
-        model.cuda()
-
-        # start evaluation
-        cur_result_dir = eval_output_dir / ('epoch_%s' % cur_epoch_id) / cfg.DATA_CONFIG.DATA_SPLIT['test']
-        tb_dict = eval_one_epoch(
-            cfg, args, model, test_loader, cur_epoch_id, logger, dist_test=dist_test,
-            result_dir=cur_result_dir
-        )
-
-        if cfg.LOCAL_RANK == 0:
-            for key, val in tb_dict.items():
-                tb_log.add_scalar(key, val, cur_epoch_id)
-
-        # record this epoch which has been evaluated
-        with open(ckpt_record_file, 'a') as f:
-            print('%s' % cur_epoch_id, file=f)
-        logger.info('Epoch %s has been evaluated' % cur_epoch_id)
-
+from mydetector3d.models.detectors.pointpillar import PointPillar
+from mydetector3d.models.detectors.second_net import SECONDNet
+from mydetector3d.models.detectors.my3dmodel import My3Dmodel
+__modelall__ = {
+    #'Detector3DTemplate': Detector3DTemplate,
+     'SECONDNet': SECONDNet,
+    # 'PartA2Net': PartA2Net,
+    # 'PVRCNN': PVRCNN,
+     'PointPillar': PointPillar,
+     'My3Dmodel': My3Dmodel
+}
 
 def main():
     args, cfg = parse_config()
@@ -171,21 +115,22 @@ def main():
         assert args.batch_size % total_gpus == 0, 'Batch size should match the number of gpus'
         args.batch_size = args.batch_size // total_gpus
 
-    #output_dir = cfg.ROOT_DIR / 'output' / cfg.EXP_GROUP_PATH / cfg.TAG / args.extra_tag
-    output_dir = cfg.ROOT_DIR / 'output' /  cfg.TAG / args.extra_tag
+    output_dir = cfg.ROOT_DIR / 'output' / cfg.EXP_GROUP_PATH / cfg.TAG / args.extra_tag
+    #Folder format: output/kitti_models(EXP_GROUP_PATH)/pointpillar(TAG)/extra_tag
+    #output_dir = cfg.ROOT_DIR / 'output' /  cfg.TAG / args.extra_tag
     output_dir.mkdir(parents=True, exist_ok=True)
 
     eval_output_dir = output_dir / 'eval'
 
-    if not args.eval_all:
-        num_list = re.findall(r'\d+', args.ckpt) if args.ckpt is not None else []
-        epoch_id = num_list[-1] if num_list.__len__() > 0 else 'no_number'
-        eval_output_dir = eval_output_dir / ('epoch_%s' % epoch_id) / cfg.DATA_CONFIG.DATA_SPLIT['test']
-    else:
-        eval_output_dir = eval_output_dir / 'eval_all_default'
+    # if not args.eval_all:
+    #     num_list = re.findall(r'\d+', args.ckpt) if args.ckpt is not None else []
+    #     epoch_id = num_list[-1] if num_list.__len__() > 0 else 'no_number'
+    #     eval_output_dir = eval_output_dir / ('epoch_%s' % epoch_id) / cfg.DATA_CONFIG.DATA_SPLIT['test']
+    # else:
+    #     eval_output_dir = eval_output_dir / 'eval_all_default'
 
-    if args.eval_tag is not None:
-        eval_output_dir = eval_output_dir / args.eval_tag
+    # if args.eval_tag is not None:
+    #     eval_output_dir = eval_output_dir / args.eval_tag
 
     eval_output_dir.mkdir(parents=True, exist_ok=True)
     log_file = eval_output_dir / ('log_eval_%s.txt' % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
@@ -202,7 +147,7 @@ def main():
         logger.info('{:16} {}'.format(key, val))
     log_config_to_file(cfg, logger=logger)
 
-    ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else output_dir / 'ckpt'
+    #ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else output_dir / 'ckpt'
 
     test_set, test_loader, sampler = build_dataloader(
         dataset_cfg=cfg.DATA_CONFIG,
@@ -211,12 +156,27 @@ def main():
         dist=dist_test, workers=args.workers, logger=logger, training=False
     )
 
-    model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
+    #model = build_network(model_cfg=cfg.MODEL, num_class=len(cfg.CLASS_NAMES), dataset=test_set)
+    model_cfg=cfg.MODEL
+    model_name=model_cfg.NAME
+    num_class=len(cfg.CLASS_NAMES)
+    model = __modelall__[model_name](
+        model_cfg=model_cfg, num_class=num_class, dataset=test_set
+    )
+    
     with torch.no_grad():
-        if args.eval_all:
-            repeat_eval_ckpt(model, test_loader, args, eval_output_dir, logger, ckpt_dir, dist_test=dist_test)
-        else:
-            eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=dist_test)
+        # load checkpoint
+        model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test, 
+                                    pre_trained_path=args.pretrained_model)
+        model.cuda()
+        
+        # start evaluation
+        epoch_id = 256
+        eval_one_epoch(
+            cfg, args, model, test_loader, epoch_id, logger, dist_test=dist_test,
+            result_dir=eval_output_dir
+        )
+        #eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=dist_test)
 
 
 if __name__ == '__main__':
