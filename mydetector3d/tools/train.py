@@ -27,7 +27,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 #/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/my3dmodel.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/my3dmodel_multihead.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--epochs', type=int, default=256, required=False, help='number of epochs to train for')

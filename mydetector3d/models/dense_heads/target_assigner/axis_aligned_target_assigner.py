@@ -10,19 +10,19 @@ class AxisAlignedTargetAssigner(object):
         super().__init__()
 
         anchor_generator_cfg = model_cfg.ANCHOR_GENERATOR_CONFIG
-        anchor_target_cfg = model_cfg.TARGET_ASSIGNER_CONFIG
-        self.box_coder = box_coder
-        self.match_height = match_height
+        anchor_target_cfg = model_cfg.TARGET_ASSIGNER_CONFIG #assign box to target configuration
+        self.box_coder = box_coder #utils.box_coder_utils.ResidualCoder
+        self.match_height = match_height #
         self.class_names = np.array(class_names)
         self.anchor_class_names = [config['class_name'] for config in anchor_generator_cfg]
         self.pos_fraction = anchor_target_cfg.POS_FRACTION if anchor_target_cfg.POS_FRACTION >= 0 else None
-        self.sample_size = anchor_target_cfg.SAMPLE_SIZE
-        self.norm_by_num_examples = anchor_target_cfg.NORM_BY_NUM_EXAMPLES
+        self.sample_size = anchor_target_cfg.SAMPLE_SIZE #512
+        self.norm_by_num_examples = anchor_target_cfg.NORM_BY_NUM_EXAMPLES #False
         self.matched_thresholds = {}
         self.unmatched_thresholds = {}
         for config in anchor_generator_cfg:
-            self.matched_thresholds[config['class_name']] = config['matched_threshold']
-            self.unmatched_thresholds[config['class_name']] = config['unmatched_threshold']
+            self.matched_thresholds[config['class_name']] = config['matched_threshold'] #0.6
+            self.unmatched_thresholds[config['class_name']] = config['unmatched_threshold'] #0.45
 
         self.use_multihead = model_cfg.get('USE_MULTIHEAD', False)
         # self.separate_multihead = model_cfg.get('SEPARATE_MULTIHEAD', False)
@@ -36,8 +36,8 @@ class AxisAlignedTargetAssigner(object):
     def assign_targets(self, all_anchors, gt_boxes_with_classes):
         """
         Args:
-            all_anchors: [(N, 7), ...]
-            gt_boxes: (B, M, 8)
+            all_anchors: [(N, 7), ...] [1, 248, 216, 1, 2, 7]*3
+            gt_boxes: (B, M, 8) [16, 45, 8]
         Returns:
 
         """
@@ -47,15 +47,15 @@ class AxisAlignedTargetAssigner(object):
         reg_weights = []
 
         batch_size = gt_boxes_with_classes.shape[0]
-        gt_classes = gt_boxes_with_classes[:, :, -1]
-        gt_boxes = gt_boxes_with_classes[:, :, :-1]
+        gt_classes = gt_boxes_with_classes[:, :, -1] #[16, 45]
+        gt_boxes = gt_boxes_with_classes[:, :, :-1] #[16, 45, 7]
         for k in range(batch_size):
-            cur_gt = gt_boxes[k]
-            cnt = cur_gt.__len__() - 1
-            while cnt > 0 and cur_gt[cnt].sum() == 0:
+            cur_gt = gt_boxes[k] #[45, 7]
+            cnt = cur_gt.__len__() - 1 #44
+            while cnt > 0 and cur_gt[cnt].sum() == 0: #find the last box with no zero, i.e., actual number of box
                 cnt -= 1
-            cur_gt = cur_gt[:cnt + 1]
-            cur_gt_classes = gt_classes[k][:cnt + 1].int()
+            cur_gt = cur_gt[:cnt + 1] #[34, 7]
+            cur_gt_classes = gt_classes[k][:cnt + 1].int() #34
 
             target_list = []
             for anchor_class_name, anchors in zip(self.anchor_class_names, all_anchors):
@@ -76,10 +76,10 @@ class AxisAlignedTargetAssigner(object):
                     #     selected_classes = cur_gt_classes[mask]
                     selected_classes = cur_gt_classes[mask]
                 else:
-                    feature_map_size = anchors.shape[:3]
-                    anchors = anchors.view(-1, anchors.shape[-1])
-                    selected_classes = cur_gt_classes[mask]
-
+                    feature_map_size = anchors.shape[:3] #[1, 248, 216]
+                    anchors = anchors.view(-1, anchors.shape[-1]) #[107136, 7]
+                    selected_classes = cur_gt_classes[mask] #13
+                #single class
                 single_target = self.assign_targets_single(
                     anchors,
                     cur_gt[mask],
@@ -131,8 +131,8 @@ class AxisAlignedTargetAssigner(object):
 
     def assign_targets_single(self, anchors, gt_boxes, gt_classes, matched_threshold=0.6, unmatched_threshold=0.45):
 
-        num_anchors = anchors.shape[0]
-        num_gt = gt_boxes.shape[0]
+        num_anchors = anchors.shape[0] #107136
+        num_gt = gt_boxes.shape[0] #13
 
         labels = torch.ones((num_anchors,), dtype=torch.int32, device=anchors.device) * -1
         gt_ids = torch.ones((num_anchors,), dtype=torch.int32, device=anchors.device) * -1

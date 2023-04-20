@@ -220,8 +220,8 @@ class Detector3DTemplate(nn.Module):
 
                 if not batch_dict['cls_preds_normalized']:
                     cls_preds = torch.sigmoid(cls_preds)
-            else:
-                cls_preds = [x[batch_mask] for x in batch_dict['batch_cls_preds']]
+            else: #batch_dict['batch_cls_preds'] is a list, in multi-head section
+                cls_preds = [x[batch_mask] for x in batch_dict['batch_cls_preds']] #3*[107136, 1]
                 src_cls_preds = cls_preds
                 if not batch_dict['cls_preds_normalized']:
                     cls_preds = [torch.sigmoid(x) for x in cls_preds]

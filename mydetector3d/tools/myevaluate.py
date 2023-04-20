@@ -18,7 +18,7 @@ from mydetector3d.models import build_network
 from mydetector3d.utils import common_utils
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0" #"0,1"
 
 #'/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth'
 #'mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml'
@@ -34,12 +34,12 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/my3dmodel.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/my3dmodel_multihead.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='0419test', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth', help='checkpoint to start from')
+    parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/3DDepth/output/kitti_models/my3dmodel_multihead/0419/ckpt/checkpoint_epoch_96.pth', help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')

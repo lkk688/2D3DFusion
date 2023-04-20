@@ -12,7 +12,7 @@ class AnchorHeadTemplate(nn.Module):
     def __init__(self, model_cfg, num_class, class_names, grid_size, point_cloud_range, predict_boxes_when_training):
         super().__init__()
         self.model_cfg = model_cfg
-        self.num_class = num_class
+        self.num_class = num_class #3
         self.class_names = class_names
         self.predict_boxes_when_training = predict_boxes_when_training #False
         self.use_multihead = self.model_cfg.get('USE_MULTIHEAD', False) #False
@@ -21,12 +21,12 @@ class AnchorHeadTemplate(nn.Module):
         self.box_coder = getattr(box_coder_utils, anchor_target_cfg.BOX_CODER)( # ResidualCoder
             num_dir_bins=anchor_target_cfg.get('NUM_DIR_BINS', 6),
             **anchor_target_cfg.get('BOX_CODER_CONFIG', {})
-        )
+        ) #coder size=7
 
         anchor_generator_cfg = self.model_cfg.ANCHOR_GENERATOR_CONFIG
         anchors, self.num_anchors_per_location = self.generate_anchors(
             anchor_generator_cfg, grid_size=grid_size, point_cloud_range=point_cloud_range,
-            anchor_ndim=self.box_coder.code_size
+            anchor_ndim=self.box_coder.code_size #code_size=7
         ) #anchors: [1, 248 (gridsize-493/stride-2), 216 (gridsize-432/stride-2), 1, 2, 7] *3 num_anchors_per_location=[2, 2, 2]
         self.anchors = [x.cuda() for x in anchors]
         self.target_assigner = self.get_target_assigner(anchor_target_cfg)
@@ -89,7 +89,7 @@ class AnchorHeadTemplate(nn.Module):
     def assign_targets(self, gt_boxes):
         """
         Args:
-            gt_boxes: (B, M, 8)
+            gt_boxes: (B, M, 8) [16, 45, 8]
         Returns:
 
         """
@@ -238,7 +238,7 @@ class AnchorHeadTemplate(nn.Module):
         if isinstance(self.anchors, list):
             if self.use_multihead:
                 anchors = torch.cat([anchor.permute(3, 4, 0, 1, 2, 5).contiguous().view(-1, anchor.shape[-1])
-                                     for anchor in self.anchors], dim=0)
+                                     for anchor in self.anchors], dim=0) #[321408, 8]
             else:
                 anchors = torch.cat(self.anchors, dim=-3) #[1, 248, 216, 1, 2, 7]*3 =>[1, 248, 216, 3, 2, 7]
         else:

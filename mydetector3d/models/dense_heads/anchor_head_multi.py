@@ -196,9 +196,9 @@ class AnchorHeadMulti(AnchorHeadTemplate):
         self.rpn_heads = nn.ModuleList(rpn_heads)
 
     def forward(self, data_dict):
-        spatial_features_2d = data_dict['spatial_features_2d']
+        spatial_features_2d = data_dict['spatial_features_2d'] #[16, 384, 248, 216]
         if self.shared_conv is not None:
-            spatial_features_2d = self.shared_conv(spatial_features_2d)
+            spatial_features_2d = self.shared_conv(spatial_features_2d) #[16, 64, 248, 216]
 
         ret_dicts = []
         for rpn_head in self.rpn_heads:
