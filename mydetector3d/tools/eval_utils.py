@@ -29,7 +29,7 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
     metric = {
         'gt_num': 0,
     }
-    for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
+    for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST: #[0.3, 0.5, 0.7]
         metric['recall_roi_%s' % str(cur_thresh)] = 0
         metric['recall_rcnn_%s' % str(cur_thresh)] = 0
 
@@ -62,7 +62,7 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
             start_time = time.time()
 
         with torch.no_grad():
-            pred_dicts, ret_dict = model(batch_dict)
+            pred_dicts, ret_dict = model(batch_dict) #batch size array of record_dict{'pred_boxes','pred_scores','pred_labels'}
 
         disp_dict = {}
 
@@ -77,7 +77,7 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
             batch_dict, pred_dicts, class_names,
             output_path=final_output_dir if args.save_to_file else None
         )
-        det_annos += annos
+        det_annos += annos #annos array: batchsize(16) pred_dict in each batch; det_annos array: all objects in all frames in the dataset
         if cfg.LOCAL_RANK == 0:
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
@@ -114,7 +114,7 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
         ret_dict['recall/rcnn_%s' % str(cur_thresh)] = cur_rcnn_recall
 
     total_pred_objects = 0
-    for anno in det_annos:
+    for anno in det_annos: #each frame's results
         total_pred_objects += anno['name'].__len__()
     logger.info('Average predicted number of objects(%d samples): %.3f'
                 % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
@@ -124,7 +124,7 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
 
     result_str, result_dict = dataset.evaluation(
         det_annos, class_names,
-        eval_metric=cfg.MODEL.POST_PROCESSING.EVAL_METRIC,
+        eval_metric=cfg.MODEL.POST_PROCESSING.EVAL_METRIC, #kitti
         output_path=final_output_dir
     )
 

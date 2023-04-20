@@ -35,7 +35,7 @@ def load_data_to_gpu(batch_dict):
 
 
 def model_fn_decorator():
-    ModelReturn = namedtuple('ModelReturn', ['loss', 'tb_dict', 'disp_dict'])
+    ModelReturn = namedtuple('ModelReturn', ['loss', 'tb_dict', 'disp_dict']) #define a 'ModelReturn' tuple and contains properties of (loss, tb_dict, disp_dict)
 
     def model_func(model, batch_dict):
         load_data_to_gpu(batch_dict)

@@ -85,26 +85,26 @@ class BaseBEVBackbone(nn.Module):
                 spatial_features
         Returns:
         """
-        spatial_features = data_dict['spatial_features']
+        spatial_features = data_dict['spatial_features'] #[16, 64, 496, 432]
         ups = []
         ret_dict = {}
         x = spatial_features
         for i in range(len(self.blocks)):
             x = self.blocks[i](x)
 
-            stride = int(spatial_features.shape[2] / x.shape[2])
-            ret_dict['spatial_features_%dx' % stride] = x
+            stride = int(spatial_features.shape[2] / x.shape[2]) #2
+            ret_dict['spatial_features_%dx' % stride] = x #[16, 64, 248, 216]
             if len(self.deblocks) > 0:
-                ups.append(self.deblocks[i](x))
+                ups.append(self.deblocks[i](x)) #[16, 128, 248, 216]
             else:
                 ups.append(x)
 
         if len(ups) > 1:
-            x = torch.cat(ups, dim=1)
+            x = torch.cat(ups, dim=1) #[16, 384, 248, 216]
         elif len(ups) == 1:
             x = ups[0]
 
-        if len(self.deblocks) > len(self.blocks):
+        if len(self.deblocks) > len(self.blocks): #no
             x = self.deblocks[-1](x)
 
         data_dict['spatial_features_2d'] = x

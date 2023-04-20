@@ -13,13 +13,14 @@ from .second_net import SECONDNet
 # from .mppnet_e2e import MPPNetE2E
 # from .pillarnet import PillarNet
 # from .voxelnext import VoxelNeXt
-
+from mydetector3d.models.detectors.my3dmodel import My3Dmodel
 __all__ = {
     #'Detector3DTemplate': Detector3DTemplate,
      'SECONDNet': SECONDNet,
     # 'PartA2Net': PartA2Net,
     # 'PVRCNN': PVRCNN,
-     'PointPillar': PointPillar
+     'PointPillar': PointPillar,
+     'My3Dmodel': My3Dmodel
     # 'PointRCNN': PointRCNN,
     # 'SECONDNetIoU': SECONDNetIoU,
     # 'CaDDN': CaDDN,

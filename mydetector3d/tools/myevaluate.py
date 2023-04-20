@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 from mydetector3d.tools.eval_utils import eval_one_epoch
 from mydetector3d.config import cfg, cfg_from_list, cfg_from_yaml_file, log_config_to_file
@@ -18,7 +18,7 @@ from mydetector3d.models import build_network
 from mydetector3d.utils import common_utils
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "2,3" #"0,1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 
 #'/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth'
 #'mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml'
@@ -172,10 +172,11 @@ def main():
         
         # start evaluation
         epoch_id = 256
-        eval_one_epoch(
+        ret_dict = eval_one_epoch(
             cfg, args, model, test_loader, epoch_id, logger, dist_test=dist_test,
             result_dir=eval_output_dir
         )
+        print(ret_dict)
         #eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=dist_test)
 
 

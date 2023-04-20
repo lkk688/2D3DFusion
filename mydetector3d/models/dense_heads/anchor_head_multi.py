@@ -11,9 +11,9 @@ class SingleHead(BaseBEVBackbone):
                  head_label_indices=None, separate_reg_config=None):
         super().__init__(rpn_head_cfg, input_channels)
 
-        self.num_anchors_per_location = num_anchors_per_location
-        self.num_class = num_class
-        self.code_size = code_size
+        self.num_anchors_per_location = num_anchors_per_location #2
+        self.num_class = num_class #1
+        self.code_size = code_size #7
         self.model_cfg = model_cfg
         self.separate_reg_config = separate_reg_config
         self.register_buffer('head_label_indices', head_label_indices)
@@ -22,11 +22,11 @@ class SingleHead(BaseBEVBackbone):
             code_size_cnt = 0
             self.conv_box = nn.ModuleDict()
             self.conv_box_names = []
-            num_middle_conv = self.separate_reg_config.NUM_MIDDLE_CONV
-            num_middle_filter = self.separate_reg_config.NUM_MIDDLE_FILTER
+            num_middle_conv = self.separate_reg_config.NUM_MIDDLE_CONV #1
+            num_middle_filter = self.separate_reg_config.NUM_MIDDLE_FILTER #64
             conv_cls_list = []
-            c_in = input_channels
-            for k in range(num_middle_conv):
+            c_in = input_channels #64
+            for k in range(num_middle_conv): #1
                 conv_cls_list.extend([
                     nn.Conv2d(
                         c_in, num_middle_filter,
@@ -34,20 +34,20 @@ class SingleHead(BaseBEVBackbone):
                     ),
                     nn.BatchNorm2d(num_middle_filter),
                     nn.ReLU()
-                ])
-                c_in = num_middle_filter
+                ])#Conv2d(64, 64, 3x3)
+                c_in = num_middle_filter #64
             conv_cls_list.append(nn.Conv2d(
                 c_in, self.num_anchors_per_location * self.num_class,
                 kernel_size=3, stride=1, padding=1
-            ))
+            )) #Conv2d(64, 2*1, 3x3)
             self.conv_cls = nn.Sequential(*conv_cls_list)
 
-            for reg_config in self.separate_reg_config.REG_LIST:
-                reg_name, reg_channel = reg_config.split(':')
+            for reg_config in self.separate_reg_config.REG_LIST: #['reg:2', 'height:1', 'size:3', 'angle:2', 'velo:2']
+                reg_name, reg_channel = reg_config.split(':') #reg 2
                 reg_channel = int(reg_channel)
                 cur_conv_list = []
-                c_in = input_channels
-                for k in range(num_middle_conv):
+                c_in = input_channels #64
+                for k in range(num_middle_conv): #1
                     cur_conv_list.extend([
                         nn.Conv2d(
                             c_in, num_middle_filter,
@@ -55,14 +55,14 @@ class SingleHead(BaseBEVBackbone):
                         ),
                         nn.BatchNorm2d(num_middle_filter),
                         nn.ReLU()
-                    ])
-                    c_in = num_middle_filter
+                    ]) #Conv2d(64, 64, 3x3)
+                    c_in = num_middle_filter #54
 
                 cur_conv_list.append(nn.Conv2d(
                     c_in, self.num_anchors_per_location * int(reg_channel),
                     kernel_size=3, stride=1, padding=1, bias=True
-                ))
-                code_size_cnt += reg_channel
+                )) #Conv2d(64, 2*2) Conv2d(64, 2*1)
+                code_size_cnt += reg_channel #0+2=2 +1
                 self.conv_box[f'conv_{reg_name}'] = nn.Sequential(*cur_conv_list)
                 self.conv_box_names.append(f'conv_{reg_name}')
 
@@ -156,15 +156,15 @@ class AnchorHeadMulti(AnchorHeadTemplate):
             point_cloud_range=point_cloud_range, predict_boxes_when_training=predict_boxes_when_training
         )
         self.model_cfg = model_cfg
-        self.separate_multihead = self.model_cfg.get('SEPARATE_MULTIHEAD', False)
+        self.separate_multihead = self.model_cfg.get('SEPARATE_MULTIHEAD', False) #True
 
         if self.model_cfg.get('SHARED_CONV_NUM_FILTER', None) is not None:
-            shared_conv_num_filter = self.model_cfg.SHARED_CONV_NUM_FILTER
+            shared_conv_num_filter = self.model_cfg.SHARED_CONV_NUM_FILTER #64
             self.shared_conv = nn.Sequential(
                 nn.Conv2d(input_channels, shared_conv_num_filter, 3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(shared_conv_num_filter, eps=1e-3, momentum=0.01),
                 nn.ReLU(),
-            )
+            ) #Conv2D(384, 64)
         else:
             self.shared_conv = None
             shared_conv_num_filter = input_channels
@@ -172,18 +172,18 @@ class AnchorHeadMulti(AnchorHeadTemplate):
         self.make_multihead(shared_conv_num_filter)
 
     def make_multihead(self, input_channels):
-        rpn_head_cfgs = self.model_cfg.RPN_HEAD_CFGS
+        rpn_head_cfgs = self.model_cfg.RPN_HEAD_CFGS #three classes array
         rpn_heads = []
         class_names = []
-        for rpn_head_cfg in rpn_head_cfgs:
+        for rpn_head_cfg in rpn_head_cfgs: #each class
             class_names.extend(rpn_head_cfg['HEAD_CLS_NAME'])
 
         for rpn_head_cfg in rpn_head_cfgs:
             num_anchors_per_location = sum([self.num_anchors_per_location[class_names.index(head_cls)]
-                                            for head_cls in rpn_head_cfg['HEAD_CLS_NAME']])
+                                            for head_cls in rpn_head_cfg['HEAD_CLS_NAME']]) #2
             head_label_indices = torch.from_numpy(np.array([
                 self.class_names.index(cur_name) + 1 for cur_name in rpn_head_cfg['HEAD_CLS_NAME']
-            ]))
+            ])) #1
 
             rpn_head = SingleHead(
                 self.model_cfg, input_channels,

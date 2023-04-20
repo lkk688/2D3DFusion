@@ -28,7 +28,7 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
         losses_m = common_utils.AverageMeter()
 
     end = time.time()
-    for cur_it in range(start_it, total_it_each_epoch):
+    for cur_it in range(start_it, total_it_each_epoch): #374
         try:
             batch = next(dataloader_iter)
         except StopIteration:
@@ -159,7 +159,7 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 use_logger_to_record=False, logger=None, logger_iter_interval=None, ckpt_save_time_interval=None, show_gpu_stat=False):
     accumulated_iter = start_iter
     with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
-        total_it_each_epoch = len(train_loader) #187=totalfiles(5984)/Batchsize(32)
+        total_it_each_epoch = len(train_loader) #374=totalfiles(5984)/Batchsize(16)
         if merge_all_iters_to_one_epoch: #No
             assert hasattr(train_loader.dataset, 'merge_all_iters_to_one_epoch')
             train_loader.dataset.merge_all_iters_to_one_epoch(merge=True, epochs=total_epochs)

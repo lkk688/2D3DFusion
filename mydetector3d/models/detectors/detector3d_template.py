@@ -209,11 +209,11 @@ class Detector3DTemplate(nn.Module):
                 assert batch_dict['batch_box_preds'].shape.__len__() == 3
                 batch_mask = index
 
-            box_preds = batch_dict['batch_box_preds'][batch_mask] #select box based mask
+            box_preds = batch_dict['batch_box_preds'][batch_mask] #select box based mask [321408, 7]
             src_box_preds = box_preds
             
             if not isinstance(batch_dict['batch_cls_preds'], list):
-                cls_preds = batch_dict['batch_cls_preds'][batch_mask]
+                cls_preds = batch_dict['batch_cls_preds'][batch_mask] #select cls [321408, 3]
 
                 src_cls_preds = cls_preds
                 assert cls_preds.shape[1] in [1, self.num_class]
@@ -253,25 +253,25 @@ class Detector3DTemplate(nn.Module):
                 final_labels = torch.cat(pred_labels, dim=0)
                 final_boxes = torch.cat(pred_boxes, dim=0)
             else:
-                cls_preds, label_preds = torch.max(cls_preds, dim=-1)
+                cls_preds, label_preds = torch.max(cls_preds, dim=-1) #max prob in three classes [321408]
                 if batch_dict.get('has_class_labels', False):
                     label_key = 'roi_labels' if 'roi_labels' in batch_dict else 'batch_pred_labels'
                     label_preds = batch_dict[label_key][index]
                 else:
-                    label_preds = label_preds + 1 
+                    label_preds = label_preds + 1  #class starts with 1
                 selected, selected_scores = model_nms_utils.class_agnostic_nms(
                     box_scores=cls_preds, box_preds=box_preds,
                     nms_config=post_process_cfg.NMS_CONFIG,
                     score_thresh=post_process_cfg.SCORE_THRESH
-                )
+                )#box: [321408, 7]->select 8
 
-                if post_process_cfg.OUTPUT_RAW_SCORE:
+                if post_process_cfg.OUTPUT_RAW_SCORE: #no
                     max_cls_preds, _ = torch.max(src_cls_preds, dim=-1)
                     selected_scores = max_cls_preds[selected]
 
                 final_scores = selected_scores
                 final_labels = label_preds[selected]
-                final_boxes = box_preds[selected]
+                final_boxes = box_preds[selected] #[8, 7]
                     
             recall_dict = self.generate_recall_record(
                 box_preds=final_boxes if 'rois' not in batch_dict else src_box_preds,

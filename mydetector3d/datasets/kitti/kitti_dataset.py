@@ -307,22 +307,22 @@ class KittiDataset(DatasetTemplate):
 
         def generate_single_sample_dict(batch_index, box_dict):
             pred_scores = box_dict['pred_scores'].cpu().numpy()
-            pred_boxes = box_dict['pred_boxes'].cpu().numpy()
+            pred_boxes = box_dict['pred_boxes'].cpu().numpy() #[8,7] 8 is number of objects, 7 is the bounding box
             pred_labels = box_dict['pred_labels'].cpu().numpy()
-            pred_dict = get_template_prediction(pred_scores.shape[0])
+            pred_dict = get_template_prediction(pred_scores.shape[0]) #each section is [8,7]
             if pred_scores.shape[0] == 0:
                 return pred_dict
 
             calib = batch_dict['calib'][batch_index]
-            image_shape = batch_dict['image_shape'][batch_index].cpu().numpy()
-            pred_boxes_camera = box_utils.boxes3d_lidar_to_kitti_camera(pred_boxes, calib)
+            image_shape = batch_dict['image_shape'][batch_index].cpu().numpy() #[370, 1224]
+            pred_boxes_camera = box_utils.boxes3d_lidar_to_kitti_camera(pred_boxes, calib) #Lidar to camera coordinate [8,7]
             pred_boxes_img = box_utils.boxes3d_kitti_camera_to_imageboxes(
                 pred_boxes_camera, calib, image_shape=image_shape
-            )
-
+            )#box3d to 2d (8,4)
+            #convert to Kitti format
             pred_dict['name'] = np.array(class_names)[pred_labels - 1]
             pred_dict['alpha'] = -np.arctan2(-pred_boxes[:, 1], pred_boxes[:, 0]) + pred_boxes_camera[:, 6]
-            pred_dict['bbox'] = pred_boxes_img
+            pred_dict['bbox'] = pred_boxes_img #2d box
             pred_dict['dimensions'] = pred_boxes_camera[:, 3:6]
             pred_dict['location'] = pred_boxes_camera[:, 0:3]
             pred_dict['rotation_y'] = pred_boxes_camera[:, 6]
@@ -333,9 +333,9 @@ class KittiDataset(DatasetTemplate):
 
         annos = []
         for index, box_dict in enumerate(pred_dicts):
-            frame_id = batch_dict['frame_id'][index]
+            frame_id = batch_dict['frame_id'][index] #'000000'
 
-            single_pred_dict = generate_single_sample_dict(index, box_dict)
+            single_pred_dict = generate_single_sample_dict(index, box_dict) #Kitti format dict
             single_pred_dict['frame_id'] = frame_id
             annos.append(single_pred_dict)
 

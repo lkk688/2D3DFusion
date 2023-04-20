@@ -13,12 +13,12 @@ class PFNLayer(nn.Module):
                  last_layer=False):
         super().__init__()
         
-        self.last_vfe = last_layer
-        self.use_norm = use_norm
+        self.last_vfe = last_layer #true
+        self.use_norm = use_norm #true
         if not self.last_vfe:
             out_channels = out_channels // 2
 
-        if self.use_norm:
+        if self.use_norm: #in:10, out:64
             self.linear = nn.Linear(in_channels, out_channels, bias=False)
             self.norm = nn.BatchNorm1d(out_channels, eps=1e-3, momentum=0.01)
         else:
@@ -29,16 +29,16 @@ class PFNLayer(nn.Module):
     def forward(self, inputs): #	[14290, 32, 10] input, 32 is max_points_per_voxel, 10 is feature
         if inputs.shape[0] > self.part:
             # nn.Linear performs randomly when batch size is too large
-            num_parts = inputs.shape[0] // self.part
+            num_parts = inputs.shape[0] // self.part #1 part, 89196/50000
             part_linear_out = [self.linear(inputs[num_part*self.part:(num_part+1)*self.part])
                                for num_part in range(num_parts+1)]
-            x = torch.cat(part_linear_out, dim=0)
+            x = torch.cat(part_linear_out, dim=0) #part1: [50000, 32, 64], part2: [39196, 32, 64] =>[89196, 32, 64]
         else:
             x = self.linear(inputs) #[14290, 32, 64]
         torch.backends.cudnn.enabled = False
-        x = self.norm(x.permute(0, 2, 1)).permute(0, 2, 1) if self.use_norm else x #[14290, 32, 64]
+        x = self.norm(x.permute(0, 2, 1)).permute(0, 2, 1) if self.use_norm else x #[89196, 32, 64]
         torch.backends.cudnn.enabled = True
-        x = F.relu(x) #[14290, 32, 64]
+        x = F.relu(x) #[89196, 32, 64]
         x_max = torch.max(x, dim=1, keepdim=True)[0] #[14290, 1, 64]
 
         if self.last_vfe:
@@ -86,12 +86,12 @@ class PillarVFE(VFETemplate):
         return self.num_filters[-1]
 
     def get_paddings_indicator(self, actual_num, max_num, axis=0):
-        actual_num = torch.unsqueeze(actual_num, axis + 1)
+        actual_num = torch.unsqueeze(actual_num, axis + 1) #20
         max_num_shape = [1] * len(actual_num.shape)
         max_num_shape[axis + 1] = -1
-        max_num = torch.arange(max_num, dtype=torch.int, device=actual_num.device).view(max_num_shape)
+        max_num = torch.arange(max_num, dtype=torch.int, device=actual_num.device).view(max_num_shape) #[1, 32]
         paddings_indicator = actual_num.int() > max_num
-        return paddings_indicator
+        return paddings_indicator #[89196, 32]
 
     def forward(self, batch_dict, **kwargs):
         """
@@ -101,8 +101,8 @@ class PillarVFE(VFETemplate):
             gt_boxes:(4,40,8)--> (x,y,z,dx,dy,dz,ry,class)
             use_lead_xyz:(4,) --> (1,1,1,1)
             voxels_features:(xx,32,4) --> 32 is max_points_per_voxel 4 is feature(x,y,z,intensity)
-            voxel_coords:(xx,4) --> (batch_index,z,y,x) 在dataset.collate_batch中增加了batch索引
-            voxel_num_points:(142900,)
+            voxel_coords:(xx,4) --> (batch_index,z,y,x) added batch_index in dataset.collate_batch
+            voxel_num_points:(89196,)
             image_shape:(4,2) [[375 1242],[374 1238],[375 1242],[375 1242]]
             batch_size:4
         """
@@ -110,11 +110,11 @@ class PillarVFE(VFETemplate):
         voxel_features, voxel_num_points, coords = batch_dict['voxels'], batch_dict['voxel_num_points'], batch_dict['voxel_coords']
         
         points_mean = voxel_features[:, :, :3].sum(dim=1, keepdim=True) / voxel_num_points.type_as(voxel_features).view(-1, 1, 1)
-        #mean for every voxel [142900,1,3] -> [xxx,1,3]/[xxx,1,1]
+        #mean xyz for every points in each voxel [89196,1,3] -> [xxx,:,3](dim=1 sum of 32 points xyz)/[xxx,1,1]
 
-        f_cluster = voxel_features[:, :, :3] - points_mean #xyz become relative to the voxel mean: xyz-mean [xx,32,3]
+        f_cluster = voxel_features[:, :, :3] - points_mean #points xyz become relative to the voxel mean: xyz-mean [xx,32,3]
 
-        f_center = torch.zeros_like(voxel_features[:, :, :3]) #[xx,32,3]
+        f_center = torch.zeros_like(voxel_features[:, :, :3]) #[xx,32,3] each point distance to the voxel center
         # coords is grid number * voxel size + grid offset = real coordinate
         f_center[:, :, 0] = voxel_features[:, :, 0] - (coords[:, 3].to(voxel_features.dtype).unsqueeze(1) * self.voxel_x + self.x_offset)
         f_center[:, :, 1] = voxel_features[:, :, 1] - (coords[:, 2].to(voxel_features.dtype).unsqueeze(1) * self.voxel_y + self.y_offset)
@@ -132,11 +132,11 @@ class PillarVFE(VFETemplate):
         #[xxx,32,10], 10 features:  xyzintensity (4)  points_mean(3) relative to center (3)
 
         voxel_count = features.shape[1] #32
-        mask = self.get_paddings_indicator(voxel_num_points, voxel_count, axis=0) # (xxx,32)
-        mask = torch.unsqueeze(mask, -1).type_as(voxel_features) # (xxx,32,1)
-        features *= mask # [8599, 32, 10]*[8599, 32, 1] some voxel is not full, add 0
+        mask = self.get_paddings_indicator(voxel_num_points, voxel_count, axis=0) # (89196,32)
+        mask = torch.unsqueeze(mask, -1).type_as(voxel_features) # (89196,32,1)
+        features *= mask # [89196, 32, 10]*[89196, 32, 1] some voxel is not full, add 0
         for pfn in self.pfn_layers:#only one layer
-            features = pfn(features) #[14290, 32, 10] 32 is max_points_per_voxel->[14290, 1, 64] max in each voxel
-        features = features.squeeze() #[14290, 1, 64]->[14290, 64], every pillar get 64 feature
+            features = pfn(features) #[89196, 32, 10] 32 is max_points_per_voxel->[89196, 1, 64] max in each voxel
+        features = features.squeeze() #[89196, 1, 64]->[89196, 64], every pillar get 64 feature
         batch_dict['pillar_features'] = features
         return batch_dict
