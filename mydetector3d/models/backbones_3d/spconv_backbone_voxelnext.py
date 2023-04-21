@@ -174,7 +174,7 @@ class VoxelResBackBone8xVoxelNeXt(nn.Module):
             batch_dict:
                 encoded_spconv_tensor: sparse tensor
         """
-        voxel_features, voxel_coords = batch_dict['voxel_features'], batch_dict['voxel_coords']
+        voxel_features, voxel_coords = batch_dict['voxel_features'], batch_dict['voxel_coords'] #[256000, 4], [256000, 4]
         batch_size = batch_dict['batch_size']
         input_sp_tensor = spconv.SparseConvTensor(
             features=voxel_features,
