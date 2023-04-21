@@ -39,7 +39,7 @@ def parse_config():
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='0419test', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/3DDepth/output/kitti_models/my3dmodel_multihead/0419/ckpt/checkpoint_epoch_96.pth', help='checkpoint to start from')
+    parser.add_argument('--ckpt', type=str, default='/home/010796032/3DObject/3DDepth/output/kitti_models/my3dmodel_multihead/0419/ckpt/checkpoint_epoch_168.pth', help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')

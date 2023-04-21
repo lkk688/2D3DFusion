@@ -243,54 +243,54 @@ class AnchorHeadMulti(AnchorHeadTemplate):
         return data_dict
 
     def get_cls_layer_loss(self):
-        loss_weights = self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS
-        if 'pos_cls_weight' in loss_weights:
+        loss_weights = self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS #'cls_weight': 1.0, 'loc_weight': 2.0, 'dir_weight': 0.2
+        if 'pos_cls_weight' in loss_weights:  #not available
             pos_cls_weight = loss_weights['pos_cls_weight']
             neg_cls_weight = loss_weights['neg_cls_weight']
         else:
             pos_cls_weight = neg_cls_weight = 1.0
 
-        cls_preds = self.forward_ret_dict['cls_preds']
-        box_cls_labels = self.forward_ret_dict['box_cls_labels']
+        cls_preds = self.forward_ret_dict['cls_preds'] #3*[16, 70400, 1] from forward ret of AnchorHeadMulti
+        box_cls_labels = self.forward_ret_dict['box_cls_labels'] #[16, 211200] from assign_targets
         if not isinstance(cls_preds, list):
             cls_preds = [cls_preds]
         batch_size = int(cls_preds[0].shape[0])
-        cared = box_cls_labels >= 0  # [N, num_anchors]
+        cared = box_cls_labels >= 0  # [N, num_anchors] [16, 211200] True/False
         positives = box_cls_labels > 0
         negatives = box_cls_labels == 0
-        negative_cls_weights = negatives * 1.0 * neg_cls_weight
+        negative_cls_weights = negatives * 1.0 * neg_cls_weight #[16, 211200] background anchor weights
 
-        cls_weights = (negative_cls_weights + pos_cls_weight * positives).float()
+        cls_weights = (negative_cls_weights + pos_cls_weight * positives).float() #[16, 211200] weight for anchor classification 
 
-        reg_weights = positives.float()
+        reg_weights = positives.float() #[16, 211200] positive anchor regression weight
         if self.num_class == 1:
             # class agnostic
             box_cls_labels[positives] = 1
-        pos_normalizer = positives.sum(1, keepdim=True).float()
+        pos_normalizer = positives.sum(1, keepdim=True).float() #[16, 1] number of positive samples [127, 77, 106 ...]
 
-        reg_weights /= torch.clamp(pos_normalizer, min=1.0)
-        cls_weights /= torch.clamp(pos_normalizer, min=1.0)
-        cls_targets = box_cls_labels * cared.type_as(box_cls_labels)
+        reg_weights /= torch.clamp(pos_normalizer, min=1.0) #normalized regression loss [16, 211200], min positive sample=1
+        cls_weights /= torch.clamp(pos_normalizer, min=1.0) #normalized classification loss
+        cls_targets = box_cls_labels * cared.type_as(box_cls_labels) #[16, 211200], only care foreground
         one_hot_targets = torch.zeros(
             *list(cls_targets.shape), self.num_class + 1, dtype=cls_preds[0].dtype, device=cls_targets.device
-        )
-        one_hot_targets.scatter_(-1, cls_targets.unsqueeze(dim=-1).long(), 1.0)
-        one_hot_targets = one_hot_targets[..., 1:]
+        ) #[16, 211200, 4] one-hot encoding, 4=3classes+1(background)
+        one_hot_targets.scatter_(-1, cls_targets.unsqueeze(dim=-1).long(), 1.0) #[16, 211200, 4] scatter_ for one-hot encoding
+        one_hot_targets = one_hot_targets[..., 1:] #[16, 211200, 3] take the three class, not the background
         start_idx = c_idx = 0
         cls_losses = 0
 
-        for idx, cls_pred in enumerate(cls_preds):
-            cur_num_class = self.rpn_heads[idx].num_class
-            cls_pred = cls_pred.view(batch_size, -1, cur_num_class)
+        for idx, cls_pred in enumerate(cls_preds): #3 head array
+            cur_num_class = self.rpn_heads[idx].num_class #1
+            cls_pred = cls_pred.view(batch_size, -1, cur_num_class) #[16, 70400, 1]
             if self.separate_multihead:
                 one_hot_target = one_hot_targets[:, start_idx:start_idx + cls_pred.shape[1],
                                  c_idx:c_idx + cur_num_class]
                 c_idx += cur_num_class
             else:
                 one_hot_target = one_hot_targets[:, start_idx:start_idx + cls_pred.shape[1]]
-            cls_weight = cls_weights[:, start_idx:start_idx + cls_pred.shape[1]]
-            cls_loss_src = self.cls_loss_func(cls_pred, one_hot_target, weights=cls_weight)  # [N, M]
-            cls_loss = cls_loss_src.sum() / batch_size
+            cls_weight = cls_weights[:, start_idx:start_idx + cls_pred.shape[1]] #[16, 70400]
+            cls_loss_src = self.cls_loss_func(cls_pred, one_hot_target, weights=cls_weight)  # [16, 70400, 1]
+            cls_loss = cls_loss_src.sum() / batch_size #single value
             cls_loss = cls_loss * loss_weights['cls_weight']
             cls_losses += cls_loss
             start_idx += cls_pred.shape[1]

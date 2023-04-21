@@ -107,7 +107,7 @@ class BaseBEVBackbone(nn.Module):
         if len(self.deblocks) > len(self.blocks): #no
             x = self.deblocks[-1](x)
 
-        data_dict['spatial_features_2d'] = x
+        data_dict['spatial_features_2d'] = x #[16, 512, 200, 176]
 
         return data_dict
 
