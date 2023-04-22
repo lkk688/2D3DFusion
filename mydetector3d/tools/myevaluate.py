@@ -18,7 +18,7 @@ from mydetector3d.models import build_network
 from mydetector3d.utils import common_utils
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0" #"0,1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 
 #'/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth'
 #'mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml'
