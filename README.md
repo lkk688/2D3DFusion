@@ -1,9 +1,19 @@
 # 3DDepth
 
 ## Kitti data preparation
-Use downloader scripts in Kitti folder to download Kitti raw data and Kitti tracking data. 
-* [Kitti_raw_downloader python](Kitti/Kitti_raw_downloader.py) is the python code to download [Kitti Raw data](https://www.cvlibs.net/datasets/kitti/raw_data.php), you need to specify the download path.
-* [Kitti_raw_downloader script](Kitti/Kitti_raw_downloader.sh) is used to download all [Kitti Raw data](https://www.cvlibs.net/datasets/kitti/raw_data.php), [Kitti_raw_partialdownloader](Kitti/Kitti_raw_partialdownloader.sh) is used to download the selected folder of the raw data. These scripts file need to be put in the dataset folder, e.g., 
+* You can download the official [KITTI 3D object detection](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) dataset and organize the downloaded files as follows (the road planes could be downloaded from [[road plane]](https://drive.google.com/file/d/1d5mq0RXRnvHPVeKx6Q612z0YRO1t2wAp/view?usp=sharing), which are optional for data augmentation in the training):
+```
+├── kitti
+│   │── ImageSets
+│   │── training
+│   │   ├──calib & velodyne & label_2 & image_2 & (optional: planes) & (optional: depth_2)
+│   │── testing
+│   │   ├──calib & velodyne & image_2
+```
+
+* Use downloader scripts in Kitti folder to download Kitti raw data and Kitti tracking data. 
+    * [Kitti_raw_downloader python](Kitti/Kitti_raw_downloader.py) is the python code to download [Kitti Raw data](https://www.cvlibs.net/datasets/kitti/raw_data.php), you need to specify the download path.
+    * [Kitti_raw_downloader script](Kitti/Kitti_raw_downloader.sh) is used to download all [Kitti Raw data](https://www.cvlibs.net/datasets/kitti/raw_data.php), [Kitti_raw_partialdownloader](Kitti/Kitti_raw_partialdownloader.sh) is used to download the selected folder of the raw data. These scripts file need to be put in the dataset folder, e.g., 
 ```bash
 /Datasets/Kitti$ ./Kitti_raw_partialdownloader.sh
 ```
