@@ -3,6 +3,13 @@ DATA_PATH: '/data/cmpe249-fa22/WaymoKitti/4c_train5678'
 
 POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4] #[0, -40, -3, 70.4, 40, 1]
 
+
+MAP_CLASS_TO_KITTI: {
+    'Car': 'Car',
+    'Pedestrian': 'Pedestrian',
+    'Cyclist': 'Cyclist',
+} #Sign is not included
+
 DATA_SPLIT: {
     'train': train,
     'test': val
