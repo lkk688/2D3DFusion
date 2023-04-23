@@ -9,6 +9,7 @@ from mydetector3d.utils import common_utils
 
 from .dataset import DatasetTemplate
 from .kitti.kitti_dataset import KittiDataset
+from .kitti.waymokitti_dataset import WaymoKittiDataset
 # from .nuscenes.nuscenes_dataset import NuScenesDataset
 # from .waymo.waymo_dataset import WaymoDataset
 # from .pandaset.pandaset_dataset import PandasetDataset
@@ -19,7 +20,8 @@ from .kitti.kitti_dataset import KittiDataset
 
 __all__ = {
     'DatasetTemplate': DatasetTemplate,
-    'KittiDataset': KittiDataset
+    'KittiDataset': KittiDataset,
+    'WaymoKittiDataset': WaymoKittiDataset
     # 'NuScenesDataset': NuScenesDataset,
     # 'WaymoDataset': WaymoDataset,
     # 'PandasetDataset': PandasetDataset,
