@@ -57,7 +57,7 @@ def parse_config():
     #parser.add_argument('--eval_tag', type=str, default='default', help='eval tag for this experiment')
     #parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
     #parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
-    parser.add_argument('--save_to_file', action='store_true', default=False, help='')
+    parser.add_argument('--save_to_file', default=True, help='')
     parser.add_argument('--infer_time', action='store_true', default=False, help='calculate inference latency')
 
     args = parser.parse_args()
@@ -90,11 +90,109 @@ __modelall__ = {
 
 from mydetector3d.datasets.kitti.kitti_dataset import KittiDataset
 from mydetector3d.datasets.kitti.waymokitti_dataset import WaymoKittiDataset
-
+from functools import partial
+from torch.utils.data import DataLoader
 __datasetall__ = {
     'KittiDataset': KittiDataset,
     'WaymoKittiDataset': WaymoKittiDataset
 }
+
+def rundetection(dataloader, model, args, eval_output_dir, logger):
+    # test_set, test_loader, sampler = build_dataloader(
+    #     dataset_cfg=cfg.DATA_CONFIG,
+    #     class_names=cfg.CLASS_NAMES,
+    #     batch_size=args.batch_size,
+    #     dist=dist_test, workers=args.workers, logger=logger, training=False
+    # )
+
+    progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
+    with torch.no_grad():
+        
+        dataset = dataloader.dataset
+        class_names = dataset.class_names
+        det_annos = []
+
+        if getattr(args, 'infer_time', False):
+            start_iter = int(len(dataloader) * 0.1)
+            infer_time_meter = common_utils.AverageMeter()
+        
+        logger.info('*************** Start EVALUATION *****************')
+        model.eval()
+        start_time = time.time()
+        for i, batch_dict in enumerate(dataloader):
+            load_data_to_gpu(batch_dict)
+
+            if getattr(args, 'infer_time', False):
+                start_time = time.time()
+
+            with torch.no_grad():
+                pred_dicts, ret_dict = model(batch_dict) #batch size array of record_dict{'pred_boxes','pred_scores','pred_labels'}
+
+            disp_dict = {}
+
+            if getattr(args, 'infer_time', False):
+                inference_time = time.time() - start_time
+                infer_time_meter.update(inference_time * 1000)
+                # use ms to measure inference time
+                disp_dict['infer_time'] = f'{infer_time_meter.val:.2f}({infer_time_meter.avg:.2f})'
+
+            #statistics_info(cfg, ret_dict, metric, disp_dict)
+            annos = dataset.generate_prediction_dicts(
+                batch_dict, pred_dicts, class_names,
+                output_path=eval_output_dir if args.save_to_file else None
+            )
+            det_annos += annos #annos array: batchsize(16) pred_dict in each batch; det_annos array: all objects in all frames in the dataset
+            progress_bar.set_postfix(disp_dict)
+            progress_bar.update()
+        progress_bar.close()
+
+        total_pred_objects = 0
+        for anno in det_annos: #each frame's results
+            total_pred_objects += anno['name'].__len__()
+        logger.info('Average predicted number of objects(%d samples): %.3f'
+                    % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
+
+        resultfile=eval_output_dir / 'result.pkl'
+        with open(resultfile, 'wb') as f:
+            pickle.dump(det_annos, f)
+    return det_annos, resultfile
+
+def runevaluation(cfg, dataset, det_annos, class_names, final_output_dir, logger):
+    metric = {
+        'gt_num': 0,
+    }
+    for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST: #[0.3, 0.5, 0.7]
+        metric['recall_roi_%s' % str(cur_thresh)] = 0
+        metric['recall_rcnn_%s' % str(cur_thresh)] = 0
+    
+    ret_dict = {}
+    gt_num_cnt = metric['gt_num']
+    for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
+        cur_roi_recall = metric['recall_roi_%s' % str(cur_thresh)] / max(gt_num_cnt, 1)
+        cur_rcnn_recall = metric['recall_rcnn_%s' % str(cur_thresh)] / max(gt_num_cnt, 1)
+        logger.info('recall_roi_%s: %f' % (cur_thresh, cur_roi_recall))
+        logger.info('recall_rcnn_%s: %f' % (cur_thresh, cur_rcnn_recall))
+        ret_dict['recall/roi_%s' % str(cur_thresh)] = cur_roi_recall
+        ret_dict['recall/rcnn_%s' % str(cur_thresh)] = cur_rcnn_recall
+
+    total_pred_objects = 0
+    for anno in det_annos: #each frame's results
+        total_pred_objects += anno['name'].__len__()
+    logger.info('Average predicted number of objects(%d samples): %.3f'
+                % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
+    
+    result_str, result_dict = dataset.evaluation(
+        det_annos, class_names,
+        eval_metric=cfg.MODEL.POST_PROCESSING.EVAL_METRIC, #kitti
+        output_path=final_output_dir
+    )
+
+    logger.info(result_str)
+    ret_dict.update(result_dict)
+
+    logger.info('Result is saved to %s' % final_output_dir)
+    logger.info('****************Evaluation done.*****************')
+
 
 def main():
     args, cfg = parse_config()
@@ -130,12 +228,6 @@ def main():
         logger.info('{:16} {}'.format(key, val))
     log_config_to_file(cfg, logger=logger)
 
-    test_set, test_loader, sampler = build_dataloader(
-        dataset_cfg=cfg.DATA_CONFIG,
-        class_names=cfg.CLASS_NAMES,
-        batch_size=args.batch_size,
-        dist=dist_test, workers=args.workers, logger=logger, training=False
-    )
     dataset_cfg = cfg.DATA_CONFIG
     class_names=cfg.CLASS_NAMES
     dataset = __datasetall__[dataset_cfg.DATASET](
@@ -156,73 +248,17 @@ def main():
     model_name=model_cfg.NAME
     num_class=len(cfg.CLASS_NAMES)
     model = __modelall__[model_name](
-        model_cfg=model_cfg, num_class=num_class, dataset=test_set
+        model_cfg=model_cfg, num_class=num_class, dataset=dataset
     )
+    # load checkpoint
+    model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=False, 
+                                pre_trained_path=args.pretrained_model)
+    model.cuda()
+
+    det_annos, resultfile = rundetection(cfg, args, eval_output_dir, logger)
+
+    runevaluation(cfg, dataset, det_annos, class_names, eval_output_dir, logger)
     
-    with torch.no_grad():
-        # load checkpoint
-        model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=dist_test, 
-                                    pre_trained_path=args.pretrained_model)
-        model.cuda()
-        
-        # start evaluation
-        # epoch_id = 256
-        # ret_dict = eval_one_epoch(
-        #     cfg, args, model, test_loader, epoch_id, logger, dist_test=dist_test,
-        #     result_dir=eval_output_dir
-        # )
-        # print(ret_dict)
-        #eval_single_ckpt(model, test_loader, args, eval_output_dir, logger, epoch_id, dist_test=dist_test)
-
-
-        dataset = test_loader.dataset
-        class_names = dataset.class_names
-        det_annos = []
-
-        if getattr(args, 'infer_time', False):
-            start_iter = int(len(dataloader) * 0.1)
-            infer_time_meter = common_utils.AverageMeter()
-        
-        logger.info('*************** Start EVALUATION *****************')
-        model.eval()
-        start_time = time.time()
-        for i, batch_dict in enumerate(dataloader):
-            load_data_to_gpu(batch_dict)
-
-            if getattr(args, 'infer_time', False):
-                start_time = time.time()
-
-            with torch.no_grad():
-                pred_dicts, ret_dict = model(batch_dict) #batch size array of record_dict{'pred_boxes','pred_scores','pred_labels'}
-
-            disp_dict = {}
-
-            if getattr(args, 'infer_time', False):
-                inference_time = time.time() - start_time
-                infer_time_meter.update(inference_time * 1000)
-                # use ms to measure inference time
-                disp_dict['infer_time'] = f'{infer_time_meter.val:.2f}({infer_time_meter.avg:.2f})'
-
-            #statistics_info(cfg, ret_dict, metric, disp_dict)
-            annos = dataset.generate_prediction_dicts(
-                batch_dict, pred_dicts, class_names,
-                output_path=final_output_dir if args.save_to_file else None
-            )
-            det_annos += annos #annos array: batchsize(16) pred_dict in each batch; det_annos array: all objects in all frames in the dataset
-            progress_bar.set_postfix(disp_dict)
-            progress_bar.update()
-        progress_bar.close()
-
-        total_pred_objects = 0
-        for anno in det_annos: #each frame's results
-            total_pred_objects += anno['name'].__len__()
-        logger.info('Average predicted number of objects(%d samples): %.3f'
-                    % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
-
-        resultfile=result_dir / 'result.pkl'
-        with open(resultfile, 'wb') as f:
-            pickle.dump(det_annos, f)
-        return det_annos, resultfile
 
 if __name__ == '__main__':
     main()
