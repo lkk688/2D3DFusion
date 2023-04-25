@@ -29,7 +29,7 @@ class WaymoKittiDataset(DatasetTemplate):
         split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
         self.sample_id_list = [x.strip() for x in open(split_dir).readlines()] if split_dir.exists() else None
 
-        self.kitti_infos = []
+        self.kitti_infos = [] #contain ground truth
         self.include_kitti_data(self.mode)
 
         self.map_class_to_kitti = self.dataset_cfg.MAP_CLASS_TO_KITTI #new added
@@ -39,7 +39,7 @@ class WaymoKittiDataset(DatasetTemplate):
             self.logger.info('Loading WaymoKITTI dataset')
         kitti_infos = []
 
-        for info_path in self.dataset_cfg.INFO_PATH[mode]:
+        for info_path in self.dataset_cfg.INFO_PATH[mode]: #INFO_PATH in dataset yaml file (waymo_infos_train.pkl)
             info_path = self.root_path / info_path
             if not info_path.exists():
                 continue
@@ -75,7 +75,7 @@ class WaymoKittiDataset(DatasetTemplate):
         Returns:
             image: (H, W, 3), RGB Image
         """
-        img_file = self.root_split_path / 'image_0' / ('%s.png' % idx)
+        img_file = self.root_split_path / 'image_0' / ('%s.png' % idx) #Kitti is 'image_2'
         assert img_file.exists()
         image = io.imread(img_file)
         image = image.astype(np.float32)
@@ -88,11 +88,14 @@ class WaymoKittiDataset(DatasetTemplate):
         return np.array(io.imread(img_file).shape[:2], dtype=np.int32)
 
     def get_label(self, idx):
-        label_file = self.root_split_path / 'label_all' / ('%s.txt' % idx)
+        label_file = self.root_split_path / 'label_all' / ('%s.txt' % idx) #Kitti is 'label_2'
         assert label_file.exists()
+
+        #read everyline as object3d class
+        #return objects[] list, contain object information,e.g., type, xy
         return object3d_kitti.get_objects_from_label(label_file)
 
-    def get_depth_map(self, idx):
+    def get_depth_map(self, idx): #not used for waymokitti
         """
         Loads depth map for a sample
         Args:
@@ -135,7 +138,7 @@ class WaymoKittiDataset(DatasetTemplate):
     def get_fov_flag(pts_rect, img_shape, calib):
         """
         Args:
-            pts_rect:
+            pts_rect: lidar points in rect coordinate
             img_shape:
             calib:
 
@@ -143,19 +146,22 @@ class WaymoKittiDataset(DatasetTemplate):
 
         """
         pts_img, pts_rect_depth = calib.rect_to_img(pts_rect)
+        #check whether the projected points in the image range
         val_flag_1 = np.logical_and(pts_img[:, 0] >= 0, pts_img[:, 0] < img_shape[1])
         val_flag_2 = np.logical_and(pts_img[:, 1] >= 0, pts_img[:, 1] < img_shape[0])
         val_flag_merge = np.logical_and(val_flag_1, val_flag_2)
-        pts_valid_flag = np.logical_and(val_flag_merge, pts_rect_depth >= 0)
+        #depth should also >0
+        pts_valid_flag = np.logical_and(val_flag_merge, pts_rect_depth >= 0) #[True, False] list
 
         return pts_valid_flag
 
     def get_infos(self, num_workers=4, has_label=True, count_inside_pts=True, sample_id_list=None):
         import concurrent.futures as futures
 
-        def process_single_scene(sample_idx):
+        def process_single_scene(sample_idx): #for each idx in the list
             print('%s sample_idx: %s' % (self.split, sample_idx))
             info = {}
+            #point cloud info
             pc_info = {'num_features': 4, 'lidar_idx': sample_idx}
             info['point_cloud'] = pc_info
 
@@ -186,63 +192,91 @@ class WaymoKittiDataset(DatasetTemplate):
                 annotations['score'] = np.array([obj.score for obj in obj_list])
                 annotations['difficulty'] = np.array([obj.level for obj in obj_list], np.int32)
 
-                num_objects = len([obj.cls_type for obj in obj_list if obj.cls_type != 'DontCare'])
-                num_gt = len(annotations['name'])
+                num_objects = len([obj.cls_type for obj in obj_list if obj.cls_type != 'DontCare']) #effective objects (excluding DontCare)
+                num_gt = len(annotations['name']) #total objects
                 index = list(range(num_objects)) + [-1] * (num_gt - num_objects)
-                annotations['index'] = np.array(index, dtype=np.int32)
+                annotations['index'] = np.array(index, dtype=np.int32)#e.g., index=[0,1,2,3,4,5,-1,-1,-1,-1]
 
-                loc = annotations['location'][:num_objects]
+                #N is effective objects location（N,3）、dimensions（N,3）、rotation_y（N,1）
+                loc = annotations['location'][:num_objects] #get 0:num_objects, DontCare object is always at the end
                 dims = annotations['dimensions'][:num_objects]
                 rots = annotations['rotation_y'][:num_objects]
+
+                #Kitti 3D annotation is in camera coordinate, convert it to Lidar coordinate
                 loc_lidar = calib.rect_to_lidar(loc)
+                #dimension 0,1,2 column is l,h,w
                 l, h, w = dims[:, 0:1], dims[:, 1:2], dims[:, 2:3]
+
+                #shift objects' center coordinate (original 0) from box bottom to the center
                 loc_lidar[:, 2] += h[:, 0] / 2
+
+                # (N, 7) [x, y, z, dx, dy, dz, heading]
+                # np.newaxis add one dimension in column，rots is (N,)
+                # -(np.pi / 2 + rots[..., np.newaxis]): convert kitti camera rot angle definition to pcdet lidar rot angle definition.
+                #  In kitti，camera坐标系下定义物体朝向与camera的x轴夹角顺时针为正，逆时针为负
+                # 在pcdet中，lidar坐标系下定义物体朝向与lidar的x轴夹角逆时针为正，顺时针为负，所以二者本身就正负相反
+                # pi / 2是坐标系x轴相差的角度(如图所示)
+                # camera:         lidar:
+                # Y                    X
+                # |                    |
+                # |____X         Y_____|     
                 gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
                 annotations['gt_boxes_lidar'] = gt_boxes_lidar
 
                 info['annos'] = annotations
 
                 if count_inside_pts:
-                    points = self.get_lidar(sample_idx)
+                    points = self.get_lidar(sample_idx) #get lidar points based on index list
                     calib = self.get_calib(sample_idx)
-                    pts_rect = calib.lidar_to_rect(points[:, 0:3])
+                    pts_rect = calib.lidar_to_rect(points[:, 0:3]) #convert points from lidar coordinate to camera rect coordinate
 
-                    fov_flag = self.get_fov_flag(pts_rect, info['image']['image_shape'], calib)
-                    pts_fov = points[fov_flag]
+                    fov_flag = self.get_fov_flag(pts_rect, info['image']['image_shape'], calib) #True/False list of points inside the camera fov
+                    pts_fov = points[fov_flag] #only select points inside the camera FOV
+
+                    # gt_boxes_lidar is (N,7)  [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
+                    # returned corners_lidar（N,8,3）:8 point box for each box (each point is the coordinate)
                     corners_lidar = box_utils.boxes_to_corners_3d(gt_boxes_lidar)
-                    num_points_in_gt = -np.ones(num_gt, dtype=np.int32)
 
+                    # num_gt is the total number object in the current frame，
+                    # initialize num_points_in_gt=array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1], dtype=int32)
+                    num_points_in_gt = -np.ones(num_gt, dtype=np.int32)
+                    #num_objects is effective object numbers
                     for k in range(num_objects):
+                        #corners_lidar the 8 point box of the k-th gt, pts_fov is the lidar points inside the camera FOV
+                        #is_hull check whether the point cloud is inside the bbox or not, use 0:3 means only check 2D box (x,y)
                         flag = box_utils.in_hull(pts_fov[:, 0:3], corners_lidar[k])
-                        num_points_in_gt[k] = flag.sum()
+                        num_points_in_gt[k] = flag.sum() #calculate the points inside the box
                     annotations['num_points_in_gt'] = num_points_in_gt
 
             return info
 
         sample_id_list = sample_id_list if sample_id_list is not None else self.sample_id_list
         with futures.ThreadPoolExecutor(num_workers) as executor:
-            infos = executor.map(process_single_scene, sample_id_list)
+            infos = executor.map(process_single_scene, sample_id_list) #process train or val sample id list
         return list(infos)
 
+    #use groundtruth in trainfile to generate groundtruth_database folder
     def create_groundtruth_database(self, info_path=None, used_classes=None, split='train'):
         import torch
-
+        #create gt_database folder
         database_save_path = Path(self.root_path) / ('gt_database' if split == 'train' else ('gt_database_%s' % split))
+        #save kitti_dbinfos_train file under kitti folder
         db_info_save_path = Path(self.root_path) / ('kitti_dbinfos_%s.pkl' % split)
 
         database_save_path.mkdir(parents=True, exist_ok=True)
         all_db_infos = {}
 
         with open(info_path, 'rb') as f:
-            infos = pickle.load(f)
+            infos = pickle.load(f) #load pkl file: kitti_infos_train.pkl
 
-        for k in range(len(infos)):
+        for k in range(len(infos)): #read every info (each frame) in infos array
             print('gt_database sample: %d/%d' % (k + 1, len(infos)))
             info = infos[k]
-            sample_idx = info['point_cloud']['lidar_idx']
+            sample_idx = info['point_cloud']['lidar_idx']#get index list in train.txt
+            #Read lidar points [M,4]
             points = self.get_lidar(sample_idx)
-            annos = info['annos']
-            names = annos['name']
+            annos = info['annos'] #read annotation
+            names = annos['name'] #
             difficulty = annos['difficulty']
             bbox = annos['bbox']
             gt_boxes = annos['gt_boxes_lidar']
@@ -377,42 +411,49 @@ class WaymoKittiDataset(DatasetTemplate):
         if self._merge_all_iters_to_one_epoch:
             index = index % len(self.kitti_infos)
 
-        info = copy.deepcopy(self.kitti_infos[index])
+        info = copy.deepcopy(self.kitti_infos[index]) #get info dict from index-th frame in kitti_infos array
 
         #sample_idx = info['point_cloud']['lidar_idx']
-        sample_idx_int = info['image']['image_idx']
-        sample_idx = '{:06d}'.format(sample_idx_int)
-        img_shape = info['image']['image_shape']
-        calib = self.get_calib(sample_idx)
-        get_item_list = self.dataset_cfg.get('GET_ITEM_LIST', ['points'])
+        sample_idx_int = info['image']['image_idx'] #get sample idx
+        sample_idx = '{:06d}'.format(sample_idx_int) 
+        img_shape = info['image']['image_shape'] #get image width and height
+        calib = self.get_calib(sample_idx)#get calibration object (P2, R0, V2C)
+        get_item_list = self.dataset_cfg.get('GET_ITEM_LIST', ['points']) #item list
 
+        #define input_dict with sample idx and calib
         input_dict = {
             'frame_id': sample_idx,
             'calib': calib,
         }
 
         if 'annos' in info:
-            annos = info['annos']
-            annos = common_utils.drop_info_with_name(annos, name='DontCare')
+            annos = info['annos'] #get annotation
+            annos = common_utils.drop_info_with_name(annos, name='DontCare') #remove 'DontCare'
+            #get location, dimension, and rotation angle
             loc, dims, rots = annos['location'], annos['dimensions'], annos['rotation_y']
             gt_names = annos['name']
+
+            #Kitti 3D annotation is in camera coordinate
+            #create label [n,7] in camera coordinate boxes3d_camera: (N, 7) [x, y, z, l, h, w, r] in rect camera coords
             gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
+            #convert camera coordinate to Lidar coordinate  boxes3d_lidar: [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
             gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
 
+            #add new data to input_dict
             input_dict.update({
                 'gt_names': gt_names,
                 'gt_boxes': gt_boxes_lidar
             })
             if "gt_boxes2d" in get_item_list:
-                input_dict['gt_boxes2d'] = annos["bbox"]
+                input_dict['gt_boxes2d'] = annos["bbox"] #add 2D box from annotation
 
             road_plane = self.get_road_plane(sample_idx)
             if road_plane is not None:
                 input_dict['road_plane'] = road_plane
 
-        if "points" in get_item_list:
-            points = self.get_lidar(sample_idx)
-            if self.dataset_cfg.FOV_POINTS_ONLY:
+        if "points" in get_item_list: #add Lidar points to input_dict
+            points = self.get_lidar(sample_idx) #get lidar points
+            if self.dataset_cfg.FOV_POINTS_ONLY: #require FOV angle, cut the Lidar points to camera view only
                 pts_rect = calib.lidar_to_rect(points[:, 0:3])
                 fov_flag = self.get_fov_flag(pts_rect, img_shape, calib)
                 points = points[fov_flag]
@@ -427,7 +468,7 @@ class WaymoKittiDataset(DatasetTemplate):
         if "calib_matricies" in get_item_list:
             input_dict["trans_lidar_to_cam"], input_dict["trans_cam_to_img"] = kitti_utils.calib_to_matricies(calib)
 
-        data_dict = self.prepare_data(data_dict=input_dict)
+        data_dict = self.prepare_data(data_dict=input_dict) #send input_dict to prepare_data to generate training data
 
         data_dict['image_shape'] = img_shape
         return data_dict

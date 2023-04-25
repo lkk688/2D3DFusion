@@ -578,14 +578,14 @@ def print_str(value, *arg, sstream=None):
 
 def do_eval(gt_annos,
             dt_annos,
-            current_classes,
+            current_classes, #[0, 1, 2]
             min_overlaps,
-            compute_aos=False,
+            compute_aos=False, #True
             PR_detail_dict=None):
     # min_overlaps: [num_minoverlap, metric, num_class]
     difficultys = [0, 1, 2]
     ret = eval_class(gt_annos, dt_annos, current_classes, difficultys, 0,
-                     min_overlaps, compute_aos)
+                     min_overlaps, compute_aos) #metric: eval type. 0: bbox, 1: bev, 2: 3d
     # ret: [num_class, num_diff, num_minoverlap, num_sample_points]
     mAP_bbox = get_mAP(ret["precision"])
     mAP_bbox_R40 = get_mAP_R40(ret["precision"])
@@ -602,7 +602,7 @@ def do_eval(gt_annos,
             PR_detail_dict['aos'] = ret['orientation']
 
     ret = eval_class(gt_annos, dt_annos, current_classes, difficultys, 1,
-                     min_overlaps)
+                     min_overlaps) #1 means bev, metric: eval type. 0: bbox, 1: bev, 2: 3d
     mAP_bev = get_mAP(ret["precision"])
     mAP_bev_R40 = get_mAP_R40(ret["precision"])
 
@@ -610,7 +610,7 @@ def do_eval(gt_annos,
         PR_detail_dict['bev'] = ret['precision']
 
     ret = eval_class(gt_annos, dt_annos, current_classes, difficultys, 2,
-                     min_overlaps)
+                     min_overlaps)#metric: eval type. 0: bbox, 1: bev, 2: 3d
     mAP_3d = get_mAP(ret["precision"])
     mAP_3d_R40 = get_mAP_R40(ret["precision"])
     if PR_detail_dict is not None:
@@ -648,7 +648,7 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
         0: 'Car',
         1: 'Pedestrian',
         2: 'Cyclist',
-        3: 'Van',
+        3: 'Sign', #'Van',
         4: 'Person_sitting',
         5: 'Truck'
     }
@@ -661,7 +661,7 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
             current_classes_int.append(name_to_class[curcls])
         else:
             current_classes_int.append(curcls)
-    current_classes = current_classes_int
+    current_classes = current_classes_int #[0,1,2]
     min_overlaps = min_overlaps[:, :, current_classes]
     result = ''
     # check whether alpha is valid

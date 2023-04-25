@@ -6,7 +6,7 @@ import torch
 from .detectors import build_detector
 
 try:
-    import kornia
+    import kornia #https://github.com/kornia/kornia
 except:
     pass 
     # print('Warning: kornia is not installed. This package is only required by CaDDN')

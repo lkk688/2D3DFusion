@@ -44,7 +44,7 @@ def get_calib_from_file(calib_file):
     obj = lines[6].strip().split(' ')[1:]
     Tr_velo_to_cam = np.array(obj, dtype=np.float32)#camera0
 
-    return {'P2': P0.reshape(3, 4),
+    return {'P2': P0.reshape(3, 4), #Attention!! Kitti is P2, here we replaced the P2 with Waymo's P0
             'P3': P3.reshape(3, 4),
             'R0': R0.reshape(3, 3),
             'Tr_velo2cam': Tr_velo_to_cam.reshape(3, 4)}
@@ -76,41 +76,52 @@ class Calibration(object):
         pts_hom = np.hstack((pts, np.ones((pts.shape[0], 1), dtype=np.float32)))
         return pts_hom
 
-    def rect_to_lidar(self, pts_rect):
+    def rect_to_lidar(self, pts_rect): #similar to project_rect_to_velo
         """
-        :param pts_lidar: (N, 3)
-        :return pts_rect: (N, 3)
+        :param pts_lidar: (N, 3)  Input: nx3 points in rect camera coord.
+        :return pts_rect: (N, 3) Output: nx3 points in velodyne coord.
         """
         pts_rect_hom = self.cart_to_hom(pts_rect)  # (N, 4)
-        R0_ext = np.hstack((self.R0, np.zeros((3, 1), dtype=np.float32)))  # (3, 4)
+        R0_ext = np.hstack((self.R0, np.zeros((3, 1), dtype=np.float32)))  # (3, 4) 
         R0_ext = np.vstack((R0_ext, np.zeros((1, 4), dtype=np.float32)))  # (4, 4)
         R0_ext[3, 3] = 1
         V2C_ext = np.vstack((self.V2C, np.zeros((1, 4), dtype=np.float32)))  # (4, 4)
         V2C_ext[3, 3] = 1
 
-        pts_lidar = np.dot(pts_rect_hom, np.linalg.inv(np.dot(R0_ext, V2C_ext).T))
+        pts_lidar = np.dot(pts_rect_hom, np.linalg.inv(np.dot(R0_ext, V2C_ext).T)) #project_rect_to_ref (apply R0) project_ref_to_velo (C2V)
         return pts_lidar[:, 0:3]
 
-    def lidar_to_rect(self, pts_lidar):
+    def lidar_to_rect(self, pts_lidar): #similar to project_velo_to_cameraid_rect
         """
         :param pts_lidar: (N, 3)
         :return pts_rect: (N, 3)
         """
-        pts_lidar_hom = self.cart_to_hom(pts_lidar)
-        pts_rect = np.dot(pts_lidar_hom, np.dot(self.V2C.T, self.R0.T))
+        pts_lidar_hom = self.cart_to_hom(pts_lidar) #nx4
+        pts_rect = np.dot(pts_lidar_hom, np.dot(self.V2C.T, self.R0.T)) # Lidar->V2C (project_velo_to_cameraid) project_ref_to_rect (apply R0)
         # pts_rect = reduce(np.dot, (pts_lidar_hom, self.V2C.T, self.R0.T))
         return pts_rect
 
-    def rect_to_img(self, pts_rect):
+    # def rect_to_img(self, pts_rect): #same to  project_cam3d_to_image
+    #     """
+    #     :param pts_rect: (N, 3)
+    #     :return pts_img: (N, 2)
+    #     """
+    #     pts_rect_hom = self.cart_to_hom(pts_rect) ##nx3 to nx4 by pending 1
+    #     pts_2d_hom = np.dot(pts_rect_hom, self.P2.T)
+    #     pts_img = (pts_2d_hom[:, 0:2].T / pts_rect_hom[:, 2]).T  # (N, 2)
+    #     pts_rect_depth = pts_2d_hom[:, 2] - self.P2.T[3, 2]  # depth in rect camera coord
+    #     return pts_img, pts_rect_depth
+    
+    def rect_to_img(self, pts_rect): #same to  project_cam3d_to_image in https://github.com/lkk688/3DDepth/blob/main/VisUtils/CalibrationUtils.py
         """
-        :param pts_rect: (N, 3)
-        :return pts_img: (N, 2)
+        :param pts_rect: (N, 3) nx3 points in rect camera coord
+        :return pts_img: (N, 2) nx2 points in image coord
         """
-        pts_rect_hom = self.cart_to_hom(pts_rect)
-        pts_2d_hom = np.dot(pts_rect_hom, self.P2.T)
-        pts_img = (pts_2d_hom[:, 0:2].T / pts_rect_hom[:, 2]).T  # (N, 2)
-        pts_rect_depth = pts_2d_hom[:, 2] - self.P2.T[3, 2]  # depth in rect camera coord
-        return pts_img, pts_rect_depth
+        pts_rect_hom = self.cart_to_hom(pts_rect) #nx3 to nx4 by pending 1
+        pts_2d_hom = np.dot(pts_rect_hom, self.P2.T) #projection to camera nx3
+        pts_2d_hom[:, 0] /= pts_2d_hom[:, 2] #normalize the depth pts_2d_hom[:, 2]
+        pts_2d_hom[:, 1] /= pts_2d_hom[:, 2]
+        return pts_2d_hom[:, 0:2], pts_2d_hom[:, 2] #return points2D and depth
 
     def lidar_to_img(self, pts_lidar):
         """

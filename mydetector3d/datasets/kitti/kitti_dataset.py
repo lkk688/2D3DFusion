@@ -309,16 +309,16 @@ class KittiDataset(DatasetTemplate):
             pred_scores = box_dict['pred_scores'].cpu().numpy()
             pred_boxes = box_dict['pred_boxes'].cpu().numpy() #[8,7] 8 is number of objects, 7 is the bounding box
             pred_labels = box_dict['pred_labels'].cpu().numpy()
-            pred_dict = get_template_prediction(pred_scores.shape[0]) #each section is [8,7]
+            pred_dict = get_template_prediction(pred_scores.shape[0]) #initialize dict with multiple keys, each section is [N,x], N is number of detected boxes
             if pred_scores.shape[0] == 0:
                 return pred_dict
 
-            calib = batch_dict['calib'][batch_index]
+            calib = batch_dict['calib'][batch_index] #calibration_kitti.Calibration object with P2, R0 V2C
             image_shape = batch_dict['image_shape'][batch_index].cpu().numpy() #[370, 1224]
-            pred_boxes_camera = box_utils.boxes3d_lidar_to_kitti_camera(pred_boxes, calib) #Lidar to camera coordinate [8,7]
+            pred_boxes_camera = box_utils.boxes3d_lidar_to_kitti_camera(pred_boxes, calib) #Lidar [N,7](xyz,whl,heading) to camera coordinate [N,7] [x, y, z, l, h, w, r] in rect camera coords
             pred_boxes_img = box_utils.boxes3d_kitti_camera_to_imageboxes(
                 pred_boxes_camera, calib, image_shape=image_shape
-            )#box3d to 2d (8,4)
+            )#box3d to 2d (N,4)
             #convert to Kitti format
             pred_dict['name'] = np.array(class_names)[pred_labels - 1]
             pred_dict['alpha'] = -np.arctan2(-pred_boxes[:, 1], pred_boxes[:, 0]) + pred_boxes_camera[:, 6]
@@ -332,14 +332,14 @@ class KittiDataset(DatasetTemplate):
             return pred_dict
 
         annos = []
-        for index, box_dict in enumerate(pred_dicts):
+        for index, box_dict in enumerate(pred_dicts): #box_dict{'pred_boxes'[N,7],'pred_scores'[N],'pred_labels'[N]}
             frame_id = batch_dict['frame_id'][index] #'000000'
 
-            single_pred_dict = generate_single_sample_dict(index, box_dict) #Kitti format dict
+            single_pred_dict = generate_single_sample_dict(index, box_dict) #Convert 3D pred box to 2D and add to Kitti annotation-like format dict
             single_pred_dict['frame_id'] = frame_id
             annos.append(single_pred_dict)
 
-            if output_path is not None:
+            if output_path is not None: #save to txt file
                 cur_det_file = output_path / ('%s.txt' % frame_id)
                 with open(cur_det_file, 'w') as f:
                     bbox = single_pred_dict['bbox']
@@ -357,13 +357,13 @@ class KittiDataset(DatasetTemplate):
         return annos
 
     def evaluation(self, det_annos, class_names, **kwargs):
-        if 'annos' not in self.kitti_infos[0].keys():
+        if 'annos' not in self.kitti_infos[0].keys(): #kitti_infos contain 'annos' dict
             return None, {}
 
         from .kitti_object_eval_python import eval as kitti_eval
 
-        eval_det_annos = copy.deepcopy(det_annos)
-        eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.kitti_infos]
+        eval_det_annos = copy.deepcopy(det_annos) #total 1497 files
+        eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.kitti_infos] #1497 files in kitti_infos, annotation dictionary
         ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 
         return ap_result_str, ap_dict
