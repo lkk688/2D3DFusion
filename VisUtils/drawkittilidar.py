@@ -10,9 +10,9 @@ from file_utils import load_image, read_label, load_velo_scan, WaymoCalibration,
 
 def main():
     #Basepath=r'.\Waymo\sampledata' #r'..\Waymo\sampledata' #r'D:\\Dataset\\WaymoKittitraining_0000\\'+'velodyne'
-    Basepath=r'.\Kitti\sampledata'
+    Basepath='./Kitti/sampledata'#r'.\Kitti\sampledata'
     idx=8#30
-    lidar_filename = os.path.join(Basepath, "velodyne\%06d.bin" % (idx))
+    lidar_filename = os.path.join(Basepath, "velodyne", "%06d.bin" % (idx))
     print(lidar_filename)
 
     dtype=np.float32
@@ -45,7 +45,7 @@ INSTANCE3D_Color = {
 }#'Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 'Cyclist', 'Tram','Misc' or 'DontCare'
 
 def readwaymo():
-    Basepath=r'.\Waymo\sampledata' #r'..\Waymo\sampledata' #r'D:\\Dataset\\WaymoKittitraining_0000\\'+'velodyne'
+    Basepath='./Waymo/sampledata' #r'..\Waymo\sampledata' #r'D:\\Dataset\\WaymoKittitraining_0000\\'+'velodyne'
     #Basepath=r'.\Kitti\sampledata'
     data_idx=30
 
@@ -113,5 +113,5 @@ def readwaymo():
     mlab.show()
 
 if __name__ == '__main__':
-    #main()
-    readwaymo()
+    main()
+    #readwaymo()
