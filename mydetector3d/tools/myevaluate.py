@@ -24,7 +24,7 @@ from mydetector3d.models import load_data_to_gpu
 
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0" #"0,1"
 
 #'/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth'
 #'mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml'
@@ -43,12 +43,12 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/voxelnext.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/voxelnext_3class.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0425', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymokitti_models/voxelnext/0424b/ckpt/latest_model.pth', help='checkpoint to start from')
+    parser.add_argument('--extra_tag', type=str, default='0426', help='extra tag for this experiment')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymokitti_models/voxelnext_3class/0425/ckpt/latest_model.pth', help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
