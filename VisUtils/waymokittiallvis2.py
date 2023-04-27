@@ -16,7 +16,7 @@ ROOT_DIR = os.path.dirname(BASE_DIR)#Project root folder
 sys.path.append(ROOT_DIR)
 
 from CalibrationUtils import WaymoCalibration, KittiCalibration, rotx, roty, rotz
-from VisUtils.mayavivisualize_utils import visualize_pts, draw_lidar, draw_gt_boxes3d, draw_scenes #, pltlidar_with3dbox
+from mydetector3d.tools.visual_utils.mayavivisualize_utils import visualize_pts, draw_lidar, draw_gt_boxes3d, draw_scenes #, pltlidar_with3dbox
 
 class Object3d(object):
     """ 3d object label """
