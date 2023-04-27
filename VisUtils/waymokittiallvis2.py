@@ -5,6 +5,8 @@ import cv2
 import sys
 import argparse
 import os
+# import matplotlib
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 plt.rcParams['figure.figsize'] = (16, 9)
 import mayavi.mlab as mlab
@@ -14,7 +16,7 @@ ROOT_DIR = os.path.dirname(BASE_DIR)#Project root folder
 sys.path.append(ROOT_DIR)
 
 from CalibrationUtils import WaymoCalibration, KittiCalibration, rotx, roty, rotz
-from VisUtils.mayavivisualize_utils import visualize_pts, draw_lidar, draw_gt_boxes3d, pltlidar_with3dbox
+from VisUtils.mayavivisualize_utils import visualize_pts, draw_lidar, draw_gt_boxes3d, draw_scenes #, pltlidar_with3dbox
 
 class Object3d(object):
     """ 3d object label """
@@ -146,7 +148,7 @@ waymocameraorder={
     }#Front, front_left, side_left, front_right, side_right
 cameraname_map={0:"FRONT", 1:"FRONT_LEFT", 2:"FRONT_RIGHT", 3:"SIDE_LEFT", 4:"SIDE_RIGHT"}
 
-def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range, INSTANCE3D_Color):
+def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range):
     fig = mlab.figure(
         figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
     )
@@ -162,11 +164,11 @@ def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range, INSTAN
         print(obj.type)
         # Draw 3d bounding box
         box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 
-        box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid)
+        box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid) #(n,8,3)
         #print("box3d_pts_3d_velo:", box3d_pts_3d_velo)
         #draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=color)
         colorlabel=INSTANCE3D_Color[obj.type]
-        draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type)
+        draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type) #(n,8,3)
 
     mlab.show()
 
@@ -441,6 +443,13 @@ if __name__ == "__main__":
     elif args.dataset.lower()=='kitti':
         object3dlabels=objectlabels[0]
     pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range)
+    
+    #draw_scenes(pc_velo, gt_boxes=object3dlabels, ref_boxes=None, ref_scores=None, ref_labels=None)#gt_boxes need ndarray
+
+    #V.draw_scenes(
+            #     points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
+            #     ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
+            # )
 
     print("end of demo")
     
