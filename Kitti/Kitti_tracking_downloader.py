@@ -58,7 +58,7 @@ def main():
             os.chdir('..')
 
             if not os.path.isdir('src'):
-                print("Please make sure to run this tool from the DynSLAM "
+                print("Please make sure to run this tool from the "
                       "project root when using relative paths.")
                 return 1
 

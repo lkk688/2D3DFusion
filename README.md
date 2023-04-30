@@ -1,4 +1,18 @@
 # 3DDepth
+## Setup repo
+Clone this repository, install this package (need NVIDIA CUDA environment)
+```bash
+sudo python setup.py develop
+```
+During the installation process, some cuda ops libraries will be compiled.
+
+Install the SparseConv library from [spconv](https://github.com/traveller59/spconv) and [numba](https://numba.pydata.org/numba-doc/latest/user/installing.html):
+```bash
+pip install spconv-cu117
+pip install numba
+```
+
+Install 'mayavi' for 3d point cloud visualization.
 
 ## Kitti data preparation
 * You can download the official [KITTI 3D object detection](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) dataset and organize the downloaded files as follows (the road planes could be downloaded from [[road plane]](https://drive.google.com/file/d/1d5mq0RXRnvHPVeKx6Q612z0YRO1t2wAp/view?usp=sharing), which are optional for data augmentation in the training):

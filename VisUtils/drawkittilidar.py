@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 plt.rcParams['figure.figsize'] = (25, 14)
 import mayavi.mlab as mlab
 
-from visualize_utils import draw_lidar, visualize_pts, draw_gt_boxes3d
+from mydetector3d.tools.visual_utils.mayavivisualize_utils import draw_lidar, visualize_pts, draw_gt_boxes3d
 from file_utils import load_image, read_label, load_velo_scan, WaymoCalibration, compute_box_3d
 
 def main():
