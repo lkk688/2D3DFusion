@@ -160,7 +160,7 @@ def rundetection(dataloader, model, args, eval_output_dir, logger):
             annos = dataset.generate_prediction_dicts(
                 batch_dict, pred_dicts, class_names,
                 output_path=eval_output_dir if args.save_to_file else None
-            )#batch_size array, each dict is the Kitti annotation-like format dict (2D box is converted 3D pred box)
+            )#batch_size array, each dict is the Kitti annotation-like format dict (2D box is converted from 3D pred box)
             det_annos += annos #annos array: batchsize(16) pred_dict in each batch; det_annos array: all objects in all frames in the dataset
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
