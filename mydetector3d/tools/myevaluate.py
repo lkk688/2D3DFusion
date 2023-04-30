@@ -39,19 +39,24 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0" #"0,1"
 #pretrained_model: None
 
 #'mydetector3d/tools/cfgs/waymokitti_models/voxelnext_3class.yaml'
-#'/home/010796032/3DObject/3DDepth/output/waymokitti_models/voxelnext/0422/ckpt/checkpoint_epoch_64.pth'
+#'/data/cmpe249-fa22/Mymodels/waymokitti_models/voxelnext/0425/ckpt/checkpoint_epoch_128.pth'
 
 #'mydetector3d/tools/cfgs/waymo_models/pointpillar_1x.yaml'
 #'/data/cmpe249-fa22/Mymodels/waymo_models/pointpillar_1x/0427/ckpt/checkpoint_epoch_64.pth'
 
+#'mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml'
+#'/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext_ioubranch/0429/ckpt/checkpoint_epoch_256.pth'
+#'mydetector3d/tools/cfgs/waymo_models/mysecond.yaml'
+
+
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/voxelnext_3class.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='0426', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext_ioubranch/0429/ckpt/checkpoint_epoch_256.pth', help='checkpoint to start from')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymokitti_models/voxelnext_3class/0425/ckpt/checkpoint_epoch_128.pth', help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
@@ -133,6 +138,7 @@ def rundetection(dataloader, model, args, eval_output_dir, logger):
         # Voxels: (89196, 32, 4) 32 is max_points_per_voxel 4 is feature(x,y,z,intensity)
         # Voxel_coords: (89196, 4) (batch_index,z,y,x) added batch_index in dataset.collate_batch
         # Voxel_num_points: (89196,)
+        save_idx = 1
         for i, batch_dict in enumerate(dataloader):
             load_data_to_gpu(batch_dict)
 
@@ -158,6 +164,19 @@ def rundetection(dataloader, model, args, eval_output_dir, logger):
             det_annos += annos #annos array: batchsize(16) pred_dict in each batch; det_annos array: all objects in all frames in the dataset
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
+
+            if i==save_idx:
+                #save the current batch data for later evaluation
+                save_dict = {}
+                save_dict['idx']=i
+                save_dict['modelname']='myvoxelnext'
+                save_dict['datasetname']='waymokitti'
+                save_dict['batch_dict']=batch_dict
+                save_dict['pred_dicts']=pred_dicts
+                save_dict['annos']=annos
+                resultfile='waymokitti_myvoxelnext_onebatch_%s.pkl' % str(i)
+                with open(resultfile, 'wb') as f:
+                    pickle.dump(save_dict, f)
         progress_bar.close()
 
         ret_dict = {}

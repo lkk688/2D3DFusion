@@ -57,14 +57,18 @@ __datasetall__ = {
     'WaymoDataset': WaymoDataset
 }
 
+#'mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml'
+#'mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml'
+#'mydetector3d/tools/cfgs/waymo_models/mysecond.yaml'
+
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/voxelnext_3class.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=8, required=False, help='batch size for training')
     parser.add_argument('--epochs', type=int, default=128, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0429', help='extra tag for this experiment')
+    parser.add_argument('--extra_tag', type=str, default='0430', help='extra tag for this experiment')
     parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
     parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/Mymodels', help='output folder path')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
