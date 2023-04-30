@@ -150,7 +150,7 @@ class VoxelBackBone8x(nn.Module):
         x_conv1 = self.conv1(x)#[41, 1600, 1408]
         x_conv2 = self.conv2(x_conv1) #[21, 800, 704]
         x_conv3 = self.conv3(x_conv2) #[11, 400, 352]
-        x_conv4 = self.conv4(x_conv3) [5, 200, 176]
+        x_conv4 = self.conv4(x_conv3) #[5, 200, 176]
 
         # for detection head
         # [200, 176, 5] -> [200, 176, 2]

@@ -173,14 +173,14 @@ class DatasetTemplate(torch_data.Dataset):
         #Filter gt_boxes
         if data_dict.get('gt_boxes', None) is not None:
             #return gt_names with class_name in class_names, do not need others
-            selected = common_utils.keep_arrays_by_name(data_dict['gt_names'], self.class_names)
-            data_dict['gt_boxes'] = data_dict['gt_boxes'][selected]
+            selected = common_utils.keep_arrays_by_name(data_dict['gt_names'], self.class_names) #only select used classes (3 classes)
+            data_dict['gt_boxes'] = data_dict['gt_boxes'][selected] #[32,7]
             data_dict['gt_names'] = data_dict['gt_names'][selected]
 
             #convert gt_names to index
             gt_classes = np.array([self.class_names.index(n) + 1 for n in data_dict['gt_names']], dtype=np.int32)
             #add gt_classes (index) to gt_boxes
-            gt_boxes = np.concatenate((data_dict['gt_boxes'], gt_classes.reshape(-1, 1).astype(np.float32)), axis=1)
+            gt_boxes = np.concatenate((data_dict['gt_boxes'], gt_classes.reshape(-1, 1).astype(np.float32)), axis=1) #[32,8]
             data_dict['gt_boxes'] = gt_boxes
 
             if data_dict.get('gt_boxes2d', None) is not None:

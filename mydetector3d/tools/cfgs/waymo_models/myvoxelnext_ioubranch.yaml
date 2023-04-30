@@ -1,7 +1,7 @@
 CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: mydetector3d/tools/cfgs/dataset_configs/waymo_dataset.yaml
+    _BASE_CONFIG_: mydetector3d/tools/cfgs/dataset_configs/mywaymo_dataset.yaml
 
 MODEL:
     NAME: VoxelNeXt
@@ -61,7 +61,7 @@ MODEL:
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
 
-        EVAL_METRIC: waymo
+        EVAL_METRIC: kitti #waymo
 
 
 OPTIMIZATION:

@@ -48,24 +48,26 @@ __modelall__ = {
 
 from mydetector3d.datasets.kitti.kitti_dataset import KittiDataset
 from mydetector3d.datasets.kitti.waymokitti_dataset import WaymoKittiDataset
+from mydetector3d.datasets.waymo.waymo_dataset import WaymoDataset
 from functools import partial
 from torch.utils.data import DataLoader
 __datasetall__ = {
     'KittiDataset': KittiDataset,
-    'WaymoKittiDataset': WaymoKittiDataset
+    'WaymoKittiDataset': WaymoKittiDataset,
+    'WaymoDataset': WaymoDataset
 }
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/voxelnext_3class.yaml', help='specify the config for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', help='specify the config for training')
 
-    parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
+    parser.add_argument('--batch_size', type=int, default=8, required=False, help='batch size for training')
     parser.add_argument('--epochs', type=int, default=128, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0425', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymokitti_models/voxelnext_3class/0425/ckpt/latest_model.pth', help='checkpoint to start from')
+    parser.add_argument('--extra_tag', type=str, default='0429', help='extra tag for this experiment')
+    parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
     parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/Mymodels', help='output folder path')
-    parser.add_argument('--pretrained_model', type=str, default='/data/cmpe249-fa22/Mymodels/kitti_models/voxelnext/0420/ckpt/checkpoint_epoch_256.pth', help='pretrained_model')
+    parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
     parser.add_argument('--sync_bn', action='store_true', default=False, help='whether to use sync bn')
@@ -263,25 +265,25 @@ def main():
     logger.info('**********************End training %s/%s(%s)**********************\n\n\n'
                 % (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
 
-    logger.info('**********************Start evaluation %s/%s(%s)**********************' %
-                (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
-    test_set, test_loader, sampler = build_dataloader(
-        dataset_cfg=cfg.DATA_CONFIG,
-        class_names=cfg.CLASS_NAMES,
-        batch_size=args.batch_size,
-        dist=dist_train, workers=args.workers, logger=logger, training=False
-    )
-    eval_output_dir = output_dir / 'eval' / 'eval_with_train'
-    eval_output_dir.mkdir(parents=True, exist_ok=True)
-    args.start_epoch = max(args.epochs - args.num_epochs_to_eval, 0)  # Only evaluate the last args.num_epochs_to_eval epochs
+    # logger.info('**********************Start evaluation %s/%s(%s)**********************' %
+    #             (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
+    # test_set, test_loader, sampler = build_dataloader(
+    #     dataset_cfg=cfg.DATA_CONFIG,
+    #     class_names=cfg.CLASS_NAMES,
+    #     batch_size=args.batch_size,
+    #     dist=dist_train, workers=args.workers, logger=logger, training=False
+    # )
+    # eval_output_dir = output_dir / 'eval' / 'eval_with_train'
+    # eval_output_dir.mkdir(parents=True, exist_ok=True)
+    # args.start_epoch = max(args.epochs - args.num_epochs_to_eval, 0)  # Only evaluate the last args.num_epochs_to_eval epochs
 
-    repeat_eval_ckpt(
-        model.module if dist_train else model,
-        test_loader, args, eval_output_dir, logger, ckpt_dir,
-        dist_test=dist_train
-    )
-    logger.info('**********************End evaluation %s/%s(%s)**********************' %
-                (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
+    # repeat_eval_ckpt(
+    #     model.module if dist_train else model,
+    #     test_loader, args, eval_output_dir, logger, ckpt_dir,
+    #     dist_test=dist_train
+    # )
+    # logger.info('**********************End evaluation %s/%s(%s)**********************' %
+    #             (cfg.EXP_GROUP_PATH, cfg.TAG, args.extra_tag))
 
 
 if __name__ == '__main__':

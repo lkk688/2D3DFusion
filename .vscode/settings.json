@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "c:\\Users\\lkk\\Documents\\Developer\\.venv\\Scripts\\python.exe"
+    "python.pythonPath": "c:\\Users\\lkk\\Documents\\Developer\\.venv\\Scripts\\python.exe",
+    "esbonio.sphinx.confDir": ""
 }

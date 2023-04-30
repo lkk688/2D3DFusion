@@ -1,6 +1,6 @@
 DATASET: 'WaymoDataset'
 DATA_PATH: '/data/cmpe249-fa22/Waymo132'
-PROCESSED_DATA_TAG: 'waymo_processed_data_v0_5_0'
+PROCESSED_DATA_TAG: 'train0to9' #'waymo_processed_data_v0_5_0'
 
 POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
 
@@ -26,17 +26,11 @@ DATA_AUGMENTOR:
         - NAME: gt_sampling
           USE_ROAD_PLANE: False
           DB_INFO_PATH:
-              - waymo_processed_data_v0_5_0_waymo_dbinfos_train_sampled_1.pkl
+              - train0to9_waymo_dbinfos_train_sampled_1.pkl
 
           USE_SHARED_MEMORY: False  # set it to True to speed up (it costs about 15GB shared memory)
           DB_DATA_PATH:
-              - waymo_processed_data_v0_5_0_gt_database_train_sampled_1_global.npy
-
-          BACKUP_DB_INFO:
-              # if the above DB_INFO cannot be found, will use this backup one
-              DB_INFO_PATH: waymo_processed_data_v0_5_0_waymo_dbinfos_train_sampled_1_multiframe_-4_to_0.pkl
-              DB_DATA_PATH: waymo_processed_data_v0_5_0_gt_database_train_sampled_1_multiframe_-4_to_0_global.npy
-              NUM_POINT_FEATURES: 6
+              - train0to9_gt_database_train_sampled_1_global.npy
 
           PREPARE: {
              filter_by_min_points: ['Vehicle:5', 'Pedestrian:5', 'Cyclist:5'],
@@ -56,7 +50,6 @@ DATA_AUGMENTOR:
 
         - NAME: random_world_scaling
           WORLD_SCALE_RANGE: [0.95, 1.05]
-
 
 POINT_FEATURE_ENCODING: {
     encoding_type: absolute_coordinates_encoding,
