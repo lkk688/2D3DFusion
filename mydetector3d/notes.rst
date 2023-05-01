@@ -91,6 +91,3 @@ In **  __getitem__ ** function
     data_dict['voxel_num_points'] = num_points
   
 get the final data_dict
-
-
-Use Slurm to request one GPU node, and setup required paths
