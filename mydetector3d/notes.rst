@@ -78,10 +78,19 @@ In **  __getitem__ ** function
    
     data_dict = self.data_augmentor.forward # perform data augmentation
     data_dict['gt_boxes'] = gt_boxes #Filter gt_boxes, convert gt_names to index and add to gt_boxes last column [Ngt,7]->[Ngt,8]
-    data_dict = self.point_feature_encoder.forward(data_dict) #do feature encoder for points
-    data_dict = self.data_processor.forward #pre-processing for the points remove out of range ponts, shuffle, and convert to voxel
+    data_dict = self.point_feature_encoder.forward(data_dict) #do feature encoder for points [N,5], only add use_lead_xyz=True
+    data_dict = self.data_processor.forward #pre-processing for the points remove out of range ponts, shuffle, and convert to voxel (transform_points_to_voxels in data_processor.py)
   
+  * transform_points_to_voxels in data_processor.py
+  
+   .. code-block:: console
+  
+    voxel_output = self.voxel_generator.generate(points) # get voxels (64657, 5, 5), coordinates (64657, 3), num_points (64657,)
+    data_dict['voxels'] = voxels
+    data_dict['voxel_coords'] = coordinates
+    data_dict['voxel_num_points'] = num_points
+  
+get the final data_dict
 
-  
 
 Use Slurm to request one GPU node, and setup required paths
