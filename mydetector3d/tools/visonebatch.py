@@ -10,13 +10,13 @@ import os
 import pickle 
 import torch
 
-#from mydetector3d.tools.visual_utils.mayavivisualize_utils import visualize_pts, draw_lidar, draw_gt_boxes3d, draw_scenes #, pltlidar_with3dbox
+from mydetector3d.tools.visual_utils.mayavivisualize_utils import visualize_pts, draw_lidar, draw_gt_boxes3d, draw_scenes #, pltlidar_with3dbox
 
 if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--batchpklfile_path", default='/home/lkk/Developer/data/onebatch_1.pkl', help="pkl file path"
+        "--batchpklfile_path", default='/home/lkk/Developer/data/waymokitti_myvoxelnext_onebatch_1.pkl', help="pkl file path"
     )#'./data/waymokittisample'
     parser.add_argument(
         "--index", default="10", help="file index"
@@ -67,6 +67,10 @@ if __name__ == "__main__":
     pred_labels = idx_pred_dicts['pred_labels']
     print(pred_boxes.shape)
     print(pred_scores)
+
+    draw_scenes(idx_points, idx_gtboxes, pred_boxes)
+
+    print('done')
 
     #draw_scenes
 
