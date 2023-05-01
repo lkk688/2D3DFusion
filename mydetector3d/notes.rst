@@ -90,4 +90,9 @@ In **  __getitem__ ** function
     data_dict['voxel_coords'] = coordinates
     data_dict['voxel_num_points'] = num_points
   
-get the final data_dict
+ * get the final data_dict
+  #. 'gt_boxes': (16, 16, 8), 16: batch size, 16: number of boxes (many are zeros), 8: boxes value
+  #. 'points': (302730, 5): 5: add 0 in the left of 4 point features (xyzr)
+  #. Voxels: (89196, 32, 4) 32 is max_points_per_voxel 4 is feature(x,y,z,intensity)
+  #. Voxel_coords: (89196, 4) (batch_index,z,y,x) added batch_index in dataset.collate_batch
+  #. Voxel_num_points: (89196,)
