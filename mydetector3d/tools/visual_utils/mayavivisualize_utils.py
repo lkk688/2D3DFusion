@@ -160,6 +160,7 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labe
                 mask = (ref_labels == k)
                 fig = draw_corners3d(ref_corners3d[mask], fig=fig, color=cur_color, cls=ref_scores[mask], max_num=100)
     mlab.view(azimuth=-179, elevation=54.0, distance=104.0, roll=90.0)
+    mlab.show()
     return fig
 
 def mydraw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labels=None):
@@ -177,7 +178,7 @@ def mydraw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_la
     fig = mlab.figure(
         figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
     )
-    fig = draw_lidar(points, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=False)
+    fig = draw_lidar(points, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=True)
     #fig = visualize_pts(points)
 
     fig = draw_multi_grid_range(fig, bv_range=(0, -40, 80, 40))
@@ -196,6 +197,7 @@ def mydraw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_la
                 mask = (ref_labels == k)
                 fig = draw_corners3d(ref_corners3d[mask], fig=fig, color=cur_color, cls=ref_scores[mask], max_num=100)
     mlab.view(azimuth=-179, elevation=54.0, distance=104.0, roll=90.0)
+    mlab.show()
     return fig
 
 def draw_corners3d(corners3d, fig, color=(1, 1, 1), line_width=2, cls=None, tag='', max_num=500, tube_radius=None):
@@ -496,3 +498,30 @@ def draw_gt_boxes3d(
     return fig
 
 
+INSTANCE3D_Color = {
+    'Car':(0, 1, 0), 'Pedestrian':(0, 1, 1), 'Sign': (1, 1, 0), 'Cyclist':(0.5, 0.5, 0.3)
+}#'Car', 'Van', 'Truck','Pedestrian', 'Person_sitting', 'Cyclist', 'Tram','Misc' or 'DontCare'
+
+def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range):
+    fig = mlab.figure(
+        figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
+    )
+    draw_lidar(pc_velo, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=True, point_cloud_range=point_cloud_range)
+    #visualize_pts(pc_velo, fig=fig, show_intensity=True)
+
+    #only draw camera 0's 3D label
+    ref_cameraid=0 #3D labels are annotated in camera 0 frame
+    color = (0, 1, 0)
+    for obj in object3dlabels:
+        if obj.type == "DontCare":
+            continue
+        print(obj.type)
+        # Draw 3d bounding box
+        box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 
+        box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid) #(n,8,3)
+        #print("box3d_pts_3d_velo:", box3d_pts_3d_velo)
+        #draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=color)
+        colorlabel=INSTANCE3D_Color[obj.type]
+        draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type) #(n,8,3)
+
+    mlab.show()
