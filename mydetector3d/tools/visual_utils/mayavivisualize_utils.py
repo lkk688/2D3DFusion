@@ -178,7 +178,7 @@ def mydraw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_la
     fig = mlab.figure(
         figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
     )
-    fig = draw_lidar(points, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=False)
+    fig = draw_lidar(points, fig=fig, pts_scale=5, pc_label=False, color_by_intensity=True, drawregion=True)
     #fig = visualize_pts(points)
 
     fig = draw_multi_grid_range(fig, bv_range=(0, -40, 80, 40))

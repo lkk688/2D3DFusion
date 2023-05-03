@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--batchpklfile_path", default='/home/lkk/Developer/data/mysecond_onebatch_1.pkl', help="pkl file path"
+        "--batchpklfile_path", default='/home/lkk/Developer/data/waymokitti_second_epoch64_onebatch_1.pkl', help="pkl file path"
     )#'./data/waymokittisample'
     parser.add_argument(
         "--index", default="10", help="file index"
@@ -182,6 +182,12 @@ if __name__ == "__main__":
     print(pred_boxes.shape)
     print(pred_scores)
 
+    threshold = 0.2
+    selectbool = pred_scores > threshold
+    pred_boxes = pred_boxes[selectbool,:] #[319, 7]->[58, 7]
+    pred_scores = pred_scores[selectbool]
+    pred_labels = pred_labels[selectbool]
+
     import mayavi.mlab as mlab
     fig = mlab.figure(
         figure=None, bgcolor=(0, 0, 0), fgcolor=None, engine=None, size=(1000, 500)
@@ -196,9 +202,15 @@ if __name__ == "__main__":
     box3d_pts_3d = boxes_to_corners_3d(idx_gtboxes) #[42,8]->(42, 8, 3)
     #colorlabel=INSTANCE3D_Color[obj.type]
     draw_gt_boxes3d(box3d_pts_3d, fig=fig, color=(1, 1, 1), line_width=1, draw_text=False, label=None) #(n,8,3)
+
+    if pred_boxes is not None and not isinstance(pred_boxes, np.ndarray):
+        pred_boxes = pred_boxes.cpu().numpy() #(319,7)
+    ref_corners3d = boxes_to_corners_3d(pred_boxes)
+    draw_gt_boxes3d(ref_corners3d, fig=fig, color=(0, 1, 0), line_width=1, draw_text=False, label=None) #(n,8,3)
+    #fig = draw_corners3d(ref_corners3d, fig=fig, color=(0, 1, 0), cls=None, max_num=300)
     mlab.show()
 
-    mydraw_scenes(idx_points, idx_gtboxes, pred_boxes)
+    #mydraw_scenes(idx_points, idx_gtboxes, pred_boxes)
 
     print('done')
 
