@@ -26,10 +26,10 @@ class Object3d(object):
         self.occlusion = float(label[2])  # 0:fully visible 1:partly occluded 2:largely occluded 3:unknown
         self.alpha = float(label[3])
         self.box2d = np.array((float(label[4]), float(label[5]), float(label[6]), float(label[7])), dtype=np.float32)
-        self.h = float(label[8])
-        self.w = float(label[9])
-        self.l = float(label[10])
-        self.loc = np.array((float(label[11]), float(label[12]), float(label[13])), dtype=np.float32)
+        self.h = float(label[8]) #height
+        self.w = float(label[9]) #width
+        self.l = float(label[10]) #length
+        self.loc = np.array((float(label[11]), float(label[12]), float(label[13])), dtype=np.float32) #xyz in camera coordinate
         self.dis_to_cam = np.linalg.norm(self.loc)
         self.ry = float(label[14])
         self.score = float(label[15]) if label.__len__() == 16 else -1.0

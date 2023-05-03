@@ -51,7 +51,7 @@ class VoxelGeneratorWrapper():
                 voxels, coordinates, num_points = voxel_output
         else:
             assert tv is not None, f"Unexpected error, library: 'cumm' wasn't imported properly."
-            voxel_output = self._voxel_generator.point_to_voxel(tv.from_numpy(points))
+            voxel_output = self._voxel_generator.point_to_voxel(tv.from_numpy(points)) #call here
             tv_voxels, tv_coordinates, tv_num_points = voxel_output
             # make copy with numpy(), since numpy_view() will disappear as soon as the generator is deleted
             voxels = tv_voxels.numpy()
@@ -154,7 +154,7 @@ class DataProcessor(object):
         if not data_dict['use_lead_xyz']:
             voxels = voxels[..., 3:]  # remove xyz in voxels(N, 3)
 
-        if config.get('DOUBLE_FLIP', False):
+        if config.get('DOUBLE_FLIP', False): #not used
             voxels_list, voxel_coords_list, voxel_num_points_list = [voxels], [coordinates], [num_points]
             points_yflip, points_xflip, points_xyflip = self.double_flip(points)
             points_list = [points_yflip, points_xflip, points_xyflip]

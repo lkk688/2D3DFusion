@@ -116,15 +116,15 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
                             )
                     )
                     
-                    if show_gpu_stat and accumulated_iter % (3 * logger_iter_interval) == 0:
-                        # To show the GPU utilization, please install gpustat through "pip install gpustat"
-                        #gpu_info = os.popen('gpustat').read()
-                        #logger.info(gpu_info)
-                        print("Device properties:", torch.cuda.get_device_properties(0))
-                        print("Utilization:", torch.cuda.utilization(0))
-                        print('Memory Usage:')
-                        print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-                        print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
+                    # if show_gpu_stat and accumulated_iter % (3 * logger_iter_interval) == 0:
+                    #     # To show the GPU utilization, please install gpustat through "pip install gpustat"
+                    #     #gpu_info = os.popen('gpustat').read()
+                    #     #logger.info(gpu_info)
+                    #     print("Device properties:", torch.cuda.get_device_properties(0))
+                    #     print("Utilization:", torch.cuda.utilization(0))
+                    #     print('Memory Usage:')
+                    #     print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+                    #     print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
             else:                
                 pbar.update()
                 pbar.set_postfix(dict(total_it=accumulated_iter))

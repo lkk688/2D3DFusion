@@ -189,7 +189,7 @@ class DatasetTemplate(torch_data.Dataset):
         if data_dict.get('points', None) is not None:
             data_dict = self.point_feature_encoder.forward(data_dict) #do feature encoder for points
 
-        #pre-processing for the pointsm remove out of range ponts, shuffle, and convert to voxel
+        #pre-processing for the points remove out of range ponts, shuffle, and convert to voxel
         data_dict = self.data_processor.forward(
             data_dict=data_dict
         )

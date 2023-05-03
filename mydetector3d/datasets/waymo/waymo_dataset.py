@@ -358,9 +358,9 @@ class WaymoDataset(DatasetTemplate):
             sa_key = f'{sequence_name}___{sample_idx}'
             points = SharedArray.attach(f"shm://{sa_key}").copy()
         else:
-            points = self.get_lidar(sequence_name, sample_idx)
+            points = self.get_lidar(sequence_name, sample_idx) #(116614, 5)
 
-        if self.dataset_cfg.get('SEQUENCE_CONFIG', None) is not None and self.dataset_cfg.SEQUENCE_CONFIG.ENABLED:
+        if self.dataset_cfg.get('SEQUENCE_CONFIG', None) is not None and self.dataset_cfg.SEQUENCE_CONFIG.ENABLED: #no
             points, num_points_all, sample_idx_pre_list, poses, pred_boxes, pred_scores, pred_labels = self.get_sequence_data(
                 info, points, sequence_name, sample_idx, self.dataset_cfg.SEQUENCE_CONFIG,
                 load_pred_boxes=self.dataset_cfg.get('USE_PREDBOX', False)
