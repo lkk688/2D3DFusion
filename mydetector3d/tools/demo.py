@@ -84,8 +84,8 @@ def parse_config():
                         help='specify the config for demo')
     parser.add_argument('--data_path', type=str, default='data/waymokittisample/velodyne/',
                         help='specify the point cloud data file or directory')
-    parser.add_argument('--ckpt', type=str, default='/home/lkk/Developer/data/waymokitti_second_epoch88.pth',
-                        help='specify the pretrained model')
+    parser.add_argument('--ckpt', type=str, default='/home/lkk/Developer/data/waymo_second_epoch128.pth',
+                        help='specify the pretrained model') #waymokitti_second_epoch128
     parser.add_argument('--ext', type=str, default='.bin',
                         help='specify the extension of your point cloud data file (.bin or npy)')
 
