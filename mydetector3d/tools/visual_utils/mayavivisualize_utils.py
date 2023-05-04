@@ -160,7 +160,7 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labe
                 mask = (ref_labels == k)
                 fig = draw_corners3d(ref_corners3d[mask], fig=fig, color=cur_color, cls=ref_scores[mask], max_num=100)
     mlab.view(azimuth=-179, elevation=54.0, distance=104.0, roll=90.0)
-    mlab.show()
+    mlab.show(stop=True) #mlab.show()
     return fig
 
 def mydraw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labels=None):

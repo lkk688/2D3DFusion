@@ -17,9 +17,22 @@ import os
 
 from mydetector3d.config import cfg, cfg_from_yaml_file
 from mydetector3d.datasets import DatasetTemplate
-from mydetector3d.models import build_network, load_data_to_gpu
+from mydetector3d.models import build_network #, load_data_to_gpu
 from mydetector3d.utils import common_utils
 
+
+def load_data_to_gpu(batch_dict, device):
+    for key, val in batch_dict.items():
+        if not isinstance(val, np.ndarray):
+            continue
+        elif key in ['frame_id', 'metadata', 'calib']:
+            continue
+        # elif key in ['images']:
+        #     batch_dict[key] = kornia.image_to_tensor(val).float().cuda().contiguous()
+        elif key in ['image_shape']:
+            batch_dict[key] = batch_dict[key] = torch.from_numpy(val).int().to(device) #torch.from_numpy(val).int().cuda()
+        else:
+            batch_dict[key] = torch.from_numpy(val).float().to(device) #torch.from_numpy(val).float().cuda()
 
 class DemoDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None, ext='.bin'):
@@ -67,11 +80,11 @@ class DemoDataset(DatasetTemplate):
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/kitti_models/pointpillar.yaml',
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/second.yaml',
                         help='specify the config for demo')
-    parser.add_argument('--data_path', type=str, default='data/kitti/velodyne',
+    parser.add_argument('--data_path', type=str, default='data/waymokittisample/velodyne/',
                         help='specify the point cloud data file or directory')
-    parser.add_argument('--ckpt', type=str, default='data/models/pointpillar_7728.pth',
+    parser.add_argument('--ckpt', type=str, default='/home/lkk/Developer/data/waymokitti_second_epoch88.pth',
                         help='specify the pretrained model')
     parser.add_argument('--ext', type=str, default='.bin',
                         help='specify the extension of your point cloud data file (.bin or npy)')
@@ -103,13 +116,16 @@ def main():
     model = build_network(model_cfg=cfg.MODEL, num_class=len(
         cfg.CLASS_NAMES), dataset=demo_dataset)
     model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=True)
-    model.cuda()
+    gpu_id=torch.device('cuda:0')
+    #model.cuda()
+    model.to(gpu_id)
     model.eval()
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
             logger.info(f'Visualized sample index: \t{idx + 1}')
             data_dict = demo_dataset.collate_batch([data_dict])
-            load_data_to_gpu(data_dict)
+            load_data_to_gpu(data_dict, gpu_id)
+            #data_dict.to(gpu_id) #'dict' object has no attribute 'to'
             pred_dicts, _ = model.forward(data_dict)
             print(pred_dicts[0])
 
