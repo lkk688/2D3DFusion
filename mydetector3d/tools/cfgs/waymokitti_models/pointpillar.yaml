@@ -3,7 +3,7 @@ CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist'] #['Vehicle', 'Pedestrian', 'Cyclis
 DATA_CONFIG:
     _BASE_CONFIG_: mydetector3d/tools/cfgs/dataset_configs/waymokitti_dataset.yaml
 
-    POINT_CLOUD_RANGE: [-74.88, -74.88, -2, 74.88, 74.88, 4.0]
+    POINT_CLOUD_RANGE: [-37.44, -74.88, -1, 37.44, 74.88, 2.0] #[-74.88, -74.88, -2, 74.88, 74.88, 4.0]
     DATA_PROCESSOR:
         -   NAME: mask_points_and_boxes_outside_range
             REMOVE_OUTSIDE_BOXES: True
@@ -15,7 +15,7 @@ DATA_CONFIG:
             }
 
         -   NAME: transform_points_to_voxels
-            VOXEL_SIZE: [ 0.32, 0.32, 6.0 ]
+            VOXEL_SIZE: [ 0.16, 0.32, 3.0 ] #[ 0.32, 0.32, 6.0 ]
             MAX_POINTS_PER_VOXEL: 20
             MAX_NUMBER_OF_VOXELS: {
                 'train': 150000,
@@ -113,7 +113,7 @@ MODEL:
         NMS_CONFIG:
             MULTI_CLASSES_NMS: False
             NMS_TYPE: nms_gpu
-            NMS_THRESH: 0.7
+            NMS_THRESH: 0.6 #0.7
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
 

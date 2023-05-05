@@ -209,9 +209,9 @@ def boxes3d_lidar_to_kitti_camera(boxes3d_lidar, calib):
         boxes3d_camera: (N, 7) [x, y, z, l, h, w, r] in rect camera coords
     """
     boxes3d_lidar_copy = copy.deepcopy(boxes3d_lidar)
-    xyz_lidar = boxes3d_lidar_copy[:, 0:3]
-    l, w, h = boxes3d_lidar_copy[:, 3:4], boxes3d_lidar_copy[:, 4:5], boxes3d_lidar_copy[:, 5:6]
-    r = boxes3d_lidar_copy[:, 6:7]
+    xyz_lidar = boxes3d_lidar_copy[:, 0:3] #lidar xyz [N,3]
+    l, w, h = boxes3d_lidar_copy[:, 3:4], boxes3d_lidar_copy[:, 4:5], boxes3d_lidar_copy[:, 5:6] #[N,1]
+    r = boxes3d_lidar_copy[:, 6:7] #heading [N,1]
 
     xyz_lidar[:, 2] -= h.reshape(-1) / 2
     xyz_cam = calib.lidar_to_rect(xyz_lidar)

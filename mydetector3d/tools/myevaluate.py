@@ -20,10 +20,28 @@ from mydetector3d.utils import common_utils
 
 import pickle
 import tqdm
-from mydetector3d.models import load_data_to_gpu
+#from mydetector3d.models import load_data_to_device #load_data_to_gpu
 
 
 import os
+total_gpus = torch.cuda.device_count()
+
+#newly created
+def load_data_to_device(batch_dict, device):
+    for key, val in batch_dict.items():
+        if not isinstance(val, np.ndarray):
+            continue
+        elif key in ['frame_id', 'metadata', 'calib']:
+            continue
+        # elif key in ['images']:
+        #     batch_dict[key] = kornia.image_to_tensor(val).float().cuda().contiguous()
+        # elif key in ['images']:
+        #     batch_dict[key] = kornia.image_to_tensor(val).float().to(device).contiguous()
+        elif key in ['image_shape']:
+            batch_dict[key] = batch_dict[key] = torch.from_numpy(val).int().to(device) #torch.from_numpy(val).int().cuda()
+        else:
+            batch_dict[key] = torch.from_numpy(val).float().to(device) #torch.from_numpy(val).float().cuda()
+
 #os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 
 #'/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth'
@@ -50,6 +68,7 @@ import os
 
 #'mydetector3d/tools/cfgs/waymokitti_models/second.yaml'
 #'/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0501/ckpt/checkpoint_epoch_64.pth'
+#'/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0502/ckpt/checkpoint_epoch_128.pth' #updated
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/second.yaml', help='specify the config for training')
@@ -57,16 +76,16 @@ def parse_config():
     parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size for training')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='0426', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0501/ckpt/checkpoint_epoch_64.pth', help='checkpoint to start from')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0502/ckpt/checkpoint_epoch_128.pth', help='checkpoint to start from')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
+    parser.add_argument('--gpuid', default=1, type=int, help='GPU id to use.')
     parser.add_argument('--tcp_port', type=int, default=18888, help='tcp port for distrbuted training')
     parser.add_argument('--local_rank', type=int, default=0, help='local rank for distributed training')
-    parser.add_argument('--set', dest='set_cfgs', default=None, nargs=argparse.REMAINDER,
-                        help='set extra config keys if needed')
-
+    #parser.add_argument('--set', dest='set_cfgs', default=None, nargs=argparse.REMAINDER,
+    #                    help='set extra config keys if needed')
     parser.add_argument('--max_waiting_mins', type=int, default=30, help='max waiting minutes')
-    parser.add_argument('--start_epoch', type=int, default=0, help='')
+    #parser.add_argument('--start_epoch', type=int, default=0, help='')
     #parser.add_argument('--eval_tag', type=str, default='default', help='eval tag for this experiment')
     #parser.add_argument('--eval_all', action='store_true', default=False, help='whether to evaluate all checkpoints')
     #parser.add_argument('--ckpt_dir', type=str, default=None, help='specify a ckpt directory to be evaluated if needed')
@@ -83,8 +102,8 @@ def parse_config():
 
     np.random.seed(1024)
 
-    if args.set_cfgs is not None:
-        cfg_from_list(args.set_cfgs, cfg)
+    # if args.set_cfgs is not None:
+    #     cfg_from_list(args.set_cfgs, cfg)
 
     return args, cfg
 
@@ -142,7 +161,7 @@ def rundetection(dataloader, model, device, args, eval_output_dir, logger):
         # Voxel_num_points: (89196,)
         for i, batch_dict in enumerate(dataloader):
             #load_data_to_gpu(batch_dict)
-            batch_dict.to(device)
+            load_data_to_device(batch_dict, device) #dict cannot use .to(device)
 
             if getattr(args, 'infer_time', False):
                 start_time = time.time()
@@ -220,12 +239,22 @@ def runevaluation(cfg, dataset, det_annos, class_names, final_output_dir, logger
 def main():
     args, cfg = parse_config()
 
-    if args.infer_time:
-        os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+    # if args.infer_time:
+    #     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
+    if torch.cuda.is_available():
+        total_gpus = torch.cuda.device_count()
+        if args.gpuid is not None and args.gpuid < total_gpus:
+            print("Use GPU: {} for training".format(args.gpuid))
+        else:
+            args.gpuid = 0
+            print("GPUID larger than number of GPUS: {}, Use GPU: 0 for training".format(total_gpus))
+        torch.cuda.set_device(args.gpuid) #model.cuda(args.gpuid)
+        device = torch.device('cuda:{}'.format(args.gpuid))
+    else:
+        device = torch.device("cpu")
+    print('current device:', torch.cuda.current_device())
     dist_test = False
-    total_gpus = 1
-    device=torch.device('cuda:2')
 
     if args.batch_size is None:
         args.batch_size = cfg.OPTIMIZATION.BATCH_SIZE_PER_GPU
