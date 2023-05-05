@@ -6,7 +6,15 @@ import numpy as np
 import math
 import os
 import json
-from base_dataset import superclass
+#from base_dataset import superclass
+
+superclass = {
+    -1: "ignore",
+    0: "pedestrian",
+    1: "cyclist",
+    2: "car",
+    3: "ignore",
+}
 
 def range2box(box_range):
     # [x0, y0, z0, x1, y1, z1]

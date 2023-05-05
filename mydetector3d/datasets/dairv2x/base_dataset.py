@@ -99,13 +99,7 @@ name2id = {
     "unknown_movable": 3,
 }
 
-superclass = {
-    -1: "ignore",
-    0: "pedestrian",
-    1: "cyclist",
-    2: "car",
-    3: "ignore",
-}
+
 
 class Label(dict):
     def __init__(self, path, filt):
