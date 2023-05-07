@@ -14,22 +14,32 @@ import math
 from mydetector3d.utils.dataset_utils import load_json, get_files_path, mkdir_p, read_json, mdkir_kitti, \
     write_txt, pcd2bin
 
+#source: "/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/vehicle-side/"
+#target: /data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti
+#'/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-velodyne'
+
 parser = argparse.ArgumentParser("Generate the Kitti Format Data")
-parser.add_argument("--source-root", type=str, default="/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/vehicle-side/", help="Raw data root about DAIR-V2X.")
+parser.add_argument("--source-root", type=str, default="/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/infrastructure-side/", help="Raw data root about DAIR-V2X.")
 parser.add_argument(
     "--target-root",
     type=str,
-    default="/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti",
+    default="/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti",
     help="The data root where the data with kitti format is generated",
+)
+parser.add_argument(
+    "--sourcelidarfolder",
+    type=str,
+    default="/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-infrastructure-side-velodyne",
+    help="The Lidar pcd file location",
 )
 parser.add_argument(
     "--split-path",
     type=str,
-    default="/data/cmpe249-fa22/DAIR-C/split_datas/single-vehicle-split-data.json",
+    default="/data/cmpe249-fa22/DAIR-C/split_datas/single-infrastructure-split-data.json",
     help="Json file to split the data into training/validation/testing.",
 )
 parser.add_argument("--label-type", type=str, default="lidar", help="label type from ['lidar', 'camera']")
-parser.add_argument("--sensor-view", type=str, default="vehicle", help="Sensor view from ['infrastructure', 'vehicle']")
+parser.add_argument("--sensor-view", type=str, default="infrastructure", help="Sensor view from ['infrastructure', 'vehicle']")
 parser.add_argument(
     "--no-classmerge",
     action="store_true",
@@ -97,7 +107,7 @@ def gen_calib2kitti(path_camera_intrisinc, path_lidar_to_camera, path_calib):
     path_list_lidar_to_camera = get_files_path(path_lidar_to_camera, ".json")
     path_list_camera_intrisinc.sort()
     path_list_lidar_to_camera.sort()
-    print(len(path_list_camera_intrisinc), len(path_list_lidar_to_camera))
+    print(len(path_list_camera_intrisinc), len(path_list_lidar_to_camera)) #12424
     mkdir_p(path_calib)
 
     for i in range(len(path_list_camera_intrisinc)):
@@ -356,6 +366,7 @@ def kitti_pcd2bin(target_root):
 def mykitti_pcd2bin(sourcelidarfolder, target_root):
     pcd_dir = sourcelidarfolder #os.path.join(target_root, "training/velodyne")
     targetlidar_dir = os.path.join(target_root, "training/velodyne")
+    mkdir_p(targetlidar_dir)
     fileList = os.listdir(pcd_dir)
     for fileName in fileList:
         if ".pcd" in fileName:
@@ -363,7 +374,7 @@ def mykitti_pcd2bin(sourcelidarfolder, target_root):
             bin_file_path = targetlidar_dir + "/" + fileName.replace(".pcd", ".bin")
             pcd2bin(pcd_file_path, bin_file_path)
 
-def step1(args, source_root, target_root):
+def step1(args, source_root, target_root, sourcelidarfolder):
     print("================ Start to Copy Raw Data ================")
     mdkir_kitti(target_root)
     #rawdata_copy(source_root, target_root) #
@@ -371,7 +382,7 @@ def step1(args, source_root, target_root):
     #os.system("cp -r %s/velodyne %s/training" % (source_root, target_root))
 
     #kitti_pcd2bin(target_root) #xyzi
-    sourcelidarfolder = '/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-velodyne'
+    #sourcelidarfolder = '/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-velodyne'
     mykitti_pcd2bin(sourcelidarfolder, target_root)
 
     print("================ Start to Generate Label ================")
@@ -380,8 +391,19 @@ def step1(args, source_root, target_root):
     no_classmerge = args.no_classmerge #False
     os.system("mkdir -p %s" % temp_root)
     os.system("rm -rf %s/*" % temp_root)
-    gen_lidar2cam(source_root, temp_root, label_type=label_type)
-    
+    gen_lidar2cam(source_root, temp_root, label_type=label_type) #get label json
+
+def step2_kittilabel(temp_root,label_type,target_root):
+    json_root = os.path.join(temp_root, "label", label_type) #/data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar
+    kitti_label_root = os.path.join(target_root, "training/label_2") #/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2
+    json2kitti(json_root, kitti_label_root)
+    if not no_classmerge:
+        rewrite_label(kitti_label_root)
+    label_filter(kitti_label_root)
+
+    os.system("rm -rf %s" % temp_root)
+
+
 if __name__ == "__main__":
     print("================ Start to Convert ================")
     args = parser.parse_args()
@@ -391,16 +413,11 @@ if __name__ == "__main__":
     label_type = args.label_type #lidar
     no_classmerge = args.no_classmerge #False
 
-    step1(source_root, target_root)
+    #Get Lidar bin file and label.json
+    step1(args, source_root, target_root, args.sourcelidarfolder)
 
-    json_root = os.path.join(temp_root, "label", label_type) #/data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar
-    kitti_label_root = os.path.join(target_root, "training/label_2") #/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2
-    json2kitti(json_root, kitti_label_root)
-    if not no_classmerge:
-        rewrite_label(kitti_label_root)
-    label_filter(kitti_label_root)
-
-    os.system("rm -rf %s" % temp_root)
+    #Convert json label to kitti label txt file
+    step2_kittilabel(temp_root,label_type,target_root)
 
     print("================ Start to Generate Calibration Files ================")
     sensor_view = args.sensor_view
@@ -416,3 +433,5 @@ if __name__ == "__main__":
     split_json_path = args.split_path #/data/cmpe249-fa22/DAIR-C/split_datas/single-vehicle-split-data.json
     ImageSets_path = os.path.join(target_root, "ImageSets") #/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/ImageSets
     gen_ImageSet_from_split_data(ImageSets_path, split_json_path, sensor_view)
+
+    #Last step: copy image data to Kitti/image_2 folder
