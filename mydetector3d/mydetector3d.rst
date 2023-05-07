@@ -48,6 +48,31 @@ In ** runevaluation ** , input "det_annos" from detection results
 
 My Waymokitti Dataset Process
 -----------------------------
+Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', create 'kitti_infos_train.pkl', 'kitti_infos_val.pkl', 'kitti_infos_trainval.pkl', and 'kitti_infos_test.pkl' based on split file
+ * call dataset.get_infos to generate each info.pkl file, process each file in sample_id_list via **process_single_scene**, save these infos
+
+.. code-block:: console
+
+ pc_info = {'num_features': 4, 'lidar_idx': sample_idx}
+ info['point_cloud'] = pc_info
+ image_info = {'image_idx': sample_idx, 'image_shape': self.get_image_shape(sample_idx)}
+ info['image'] = image_info
+ info['calib'] = calib_info
+ info['annos'] = annotations
+
+**annotations** dict contains: ['name'], ['truncated'], ['occluded'], ['alpha'], ['bbox'], ['dimensions']: lhw(camera) format, ['location'], ['rotation_y'], ['score'], ['difficulty'], among them
+
+.. code-block:: console
+
+ loc_lidar = calib.rect_to_lidar(loc)
+ l, h, w = dims[:, 0:1], dims[:, 1:2], dims[:, 2:3]
+ loc_lidar[:, 2] += h[:, 0] / 2
+ gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
+ annotations['gt_boxes_lidar'] = gt_boxes_lidar
+
+
+My Waymokitti Dataset Process
+-----------------------------
 Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://github.com/lkk688/WaymoObjectDetection', run the following code 
 
   .. code-block:: console
