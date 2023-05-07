@@ -262,7 +262,8 @@ Copy the split data (json files in 'https://github.com/AIR-THU/DAIR-V2X/tree/mai
 Convert the dataset to KITTI format 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In 'mydetector3d/datasets/dairv2x/dair2kitti.py', first create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
+In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the vehicle-side data to Kitti format, set the 'source-root=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/vehicle-side/', 'target-root=/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti', 'sourcelidarfolder=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-velodyne'
+ * First create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
  * Created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', copy 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to 'velodyne' folder.
  * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), create 'target_root/label/lidar/' folder
  * write json to target_root/labels_path
@@ -273,12 +274,13 @@ In 'mydetector3d/datasets/dairv2x/dair2kitti.py', first create kitti folder, the
  
  .. code-block:: console
  
- (mycondapy39) [010796032@coe-hpc2 training]$ ls
- calib  label_2  velodyne
- (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2
- (mycondapy39) [010796032@coe-hpc2 training]$ cd image_2/
- (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-image/* .
+  (mycondapy39) [010796032@coe-hpc2 training]$ ls
+  calib  label_2  velodyne
+  (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2
+  (mycondapy39) [010796032@coe-hpc2 training]$ cd image_2/
+  (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-image/* .
 
+In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the infrastructure-side data to Kitti format, set the 'source-root=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/infrastructure-side/', 'target-root=/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti'
 
 Prepare the dataset 
 ~~~~~~~~~~~~~~~~~~~
