@@ -267,6 +267,7 @@ In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the vehicle-side data 
  * 'target-root=/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti'
  * 'sourcelidarfolder=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-velodyne'
  * 'split-path=/data/cmpe249-fa22/DAIR-C/split_datas/single-vehicle-split-data.json'
+ * 'sensor_view=vehicle'
 
 The conversion process involve the following major steps:
  * First create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
@@ -295,6 +296,7 @@ In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the infrastructure-sid
  * 'target-root=/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti'
  * 'sourcelidarfolder=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-infrastructure-side-velodyne'
  * 'split-path=/data/cmpe249-fa22/DAIR-C/split_datas/single-infrastructure-split-data.json'
+ * 'sensor_view=infrastructure'
 
 Prepare the dataset 
 ~~~~~~~~~~~~~~~~~~~
