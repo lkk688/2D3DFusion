@@ -46,7 +46,7 @@ In ** runevaluation ** , input "det_annos" from detection results
                     eval_gt_annos, map_name_to_kitti=map_name_to_kitti, info_with_fakelidar = False)
     result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 
-My Waymokitti Dataset Process
+Kitti Dataset Process
 -----------------------------
 Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', create 'kitti_infos_train.pkl', 'kitti_infos_val.pkl', 'kitti_infos_trainval.pkl', and 'kitti_infos_test.pkl' based on split file
  * call dataset.get_infos to generate each info.pkl file, process each file in sample_id_list via **process_single_scene**, save these infos
@@ -82,7 +82,34 @@ Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://gi
   [DatasetTools]$ python mycreatewaymoinfo.py --createinfo_only
  
 The groundtruth db generation is done in https://github.com/lkk688/mymmdetection3d
-  
+
+In **mycreatewaymoinfo.py**, createinfo_only will call **get_waymo_image_info** in 'https://github.com/lkk688/WaymoObjectDetection/blob/master/DatasetTools/myWaymoinfo_utils.py', it will create the following info
+Waymo annotation format version like KITTI:
+    {
+        [optional]points: [N, 3+] point cloud
+        [optional, for kitti]image: {
+            image_idx: ...
+            image_path: ...
+            image_shape: ...
+        }
+        point_cloud: {
+            num_features: 4 #6
+            velodyne_path: ...
+        }
+        [optional, for kitti]calib: {
+            R0_rect: ...
+            Tr_velo_to_cam0: ...
+            P0: ...
+        }
+        annos: {
+            location: [num_gt, 3] array
+            dimensions: [num_gt, 3] array
+            rotation_y: [num_gt] angle array
+            name: [num_gt] ground truth name array
+            [optional]difficulty: kitti difficulty
+            [optional]group_ids: used for multi-part object
+        }
+    }
 
 Created a new dataset file 'mydetector3d/datasets/kitti/waymokitti_dataset.py' based on kitti_dataset.py.
 
