@@ -278,9 +278,10 @@ The conversion process involve the following major steps:
        * get 'h, w, l, x, y, z, yaw_lidar', perform 'z = z - h / 2' get bottom_center
        * convert bottom_center to camera coordinate, get 'alpha, yaw' from **get_camera_3d_8points** 
        * use **convert_point** to get 'cam_x, cam_y, cam_z', and **set_label**
-    * Write labels to 'tmp_file/label/lidar/id.json'
+    * Write labels to 'tmp_file/label/lidar/id.json', get 'path_camera_intrinsic' and 'path_lidar_to_camera' under calib folder, call **gen_calib2kitti** get kitti calibration
  * use **json2kitti** to convert json label to kitti_label_root (/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2/000000.txt)
     * change code in write_kitti_in_txt, save txt to '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
+ * Generate calibration files, 
  * The converted kitti folder is '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti'. The 'testing folder is empty', the image folder is not available in training, need to copy the images to training folder:
  
  .. code-block:: console
