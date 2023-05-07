@@ -259,19 +259,26 @@ There are four data folders under root '/data/cmpe249-fa22/DAIR-C':
  
 Copy the split data (json files in 'https://github.com/AIR-THU/DAIR-V2X/tree/main/data/split_datas') to the data folder ('/data/cmpe249-fa22/DAIR-C')
 
+Convert the dataset to KITTI format 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 In 'mydetector3d/datasets/dairv2x/dair2kitti.py', first create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
  * Created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', copy 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to 'velodyne' folder.
  * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), create 'target_root/label/lidar/' folder
  * write json to target_root/labels_path
  * gen_lidar2cam, write /data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar/000000.json
  * json2kitti convert the json file to kitti txt file (/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2/000000.txt)
-change code write_kitti_in_txt
+ * change code in write_kitti_in_txt, save txt to '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
+ * The converted kitti folder is '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti'. The 'testing folder is empty', the image folder is not available in training, need to copy the images to training folder:
+ 
+ .. code-block:: console
+ 
+ (mycondapy39) [010796032@coe-hpc2 training]$ ls
+ calib  label_2  velodyne
+ (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2
+ (mycondapy39) [010796032@coe-hpc2 training]$ cd image_2/
+ (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-image/* .
 
-'/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
-
-
-Convert the dataset to KITTI format 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Prepare the dataset 
 ~~~~~~~~~~~~~~~~~~~
