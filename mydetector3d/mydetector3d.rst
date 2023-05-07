@@ -9,8 +9,8 @@ Trained Models
 These three models are trained based on ** Waymo ** dataset in HPC2, the model saved path is '/data/cmpe249-fa22/Mymodels/waymo_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0427b/ckpt/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext_ioubranch/0429/ckpt/'
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth'
-    * Evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth', Evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'
 
 New models are trained based on our converted ** WaymoKitti** dataset in HPC2, the model save path is '/data/cmpe249-fa22/Mymodels/waymokitti_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/pointpillar.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/pointpillar/0504/ckpt/checkpoint_epoch_128.pth'
