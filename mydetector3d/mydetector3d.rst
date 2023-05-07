@@ -125,7 +125,7 @@ Waymo Dataset Process
 --------------------
 
 Prepare the dataset 
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 In 'mydetector3d/datasets/waymo/waymo_dataset.py', specify the '--func' in main to select different preprocessing functions.
   * mycreateImageSet: Create the folder 'ImageSets' for the list of train val split file names under '/data/cmpe249-fa22/Waymo132/ImageSets/'
   * ** mygeninfo **: create info files based on the provided folder list, the processed_data_tag='train0to9'  
@@ -216,3 +216,62 @@ In **  __getitem__ ** function
   #. Voxels: (89196, 32, 4) 32 is max_points_per_voxel 4 is feature(x,y,z,intensity)
   #. Voxel_coords: (89196, 4) (batch_index,z,y,x) added batch_index in dataset.collate_batch
   #. Voxel_num_points: (89196,)
+
+
+DAIR V2X Dataset Process
+------------------------
+DAIR V2X dataset is saved in '/data/cmpe249-fa22/DAIR-C' folder. Based on 'https://github.com/AIR-THU/DAIR-V2X/blob/main/docs/get_started.md', 
+* 'cooperative-vehicle-infrastructure' folder as the follow three sub-folders: cooperative  infrastructure-side  vehicle-side
+* 'infrastructure-side' and 'vehicle-side' has 'image', 'velodyne', 'calib', and 'label', and data_info.json as follows. 
+* 'vehicle-side' label is in **Vehicle LiDAR Coordinate System**, while 'infrastructure-side' label is in **Infrastructure Virtual LiDAR Coordinate System**
+
+    ├── infrastructure-side             # DAIR-V2X-C-I
+        ├── image		    
+            ├── {id}.jpg
+        ├── velodyne                
+            ├── {id}.pcd           
+        ├── calib                 
+            ├── camera_intrinsic            
+                ├── {id}.json     
+            ├── virtuallidar_to_world   
+                ├── {id}.json      
+            ├── virtuallidar_to_camera  
+                ├── {id}.json      
+        ├── label	
+            ├── camera                  # Labeled data in Infrastructure Virtual LiDAR Coordinate System fitting objects in image based on image frame time
+                ├── {id}.json
+            ├── virtuallidar            # Labeled data in Infrastructure Virtual LiDAR Coordinate System fitting objects in point cloud based on point cloud frame time
+                ├── {id}.json
+        ├── data_info.json              # Relevant index information of Infrastructure data
+
+ * The 'cooperative' folder contains the following files
+    ├── cooperative                     # Coopetative Files
+        ├── label_world                 # Vehicle-Infrastructure Cooperative (VIC) Annotation files
+            ├── {id}.json           
+        ├── data_info.json              # Relevant index information combined the Infrastructure data and the Vehicle data
+
+There are four data folders under root '/data/cmpe249-fa22/DAIR-C':
+ * 'cooperative-vehicle-infrastructure-vehicle-side-image' folder contains all images (6digit_id.jpg) in vehicle side.
+ * 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' folder contains all lidar files (6digit_id.pcd) in vehicle side.
+ * 'cooperative-vehicle-infrastructure-infrastructure-side-image' folder contains all images (6digit_id.jpg) in infrastructure side.
+ * 'cooperative-vehicle-infrastructure-infrastructure-side-velodyne' folder contains all lidar files (6digit_id.pcd) in infrastructure side.
+ 
+ 
+Copy the split data (json files in 'https://github.com/AIR-THU/DAIR-V2X/tree/main/data/split_datas') to the data folder ('/data/cmpe249-fa22/DAIR-C')
+
+In 'mydetector3d/datasets/dairv2x/dair2kitti.py', first create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
+ * Created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', copy 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to 'velodyne' folder.
+ * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), create 'target_root/label/lidar/' folder
+ * write json to target_root/labels_path
+ * gen_lidar2cam, write /data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar/000000.json
+ * json2kitti convert the json file to kitti txt file (/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2/000000.txt)
+change code write_kitti_in_txt
+
+'/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
+
+
+Convert the dataset to KITTI format 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Prepare the dataset 
+~~~~~~~~~~~~~~~~~~~
