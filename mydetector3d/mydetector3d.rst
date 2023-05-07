@@ -9,8 +9,8 @@ Trained Models
 These three models are trained based on ** Waymo ** dataset in HPC2, the model saved path is '/data/cmpe249-fa22/Mymodels/waymo_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0427b/ckpt/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext_ioubranch/0429/ckpt/'
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth'
-    * Evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth', evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth', evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch128'
 
 New models are trained based on our converted ** WaymoKitti** dataset in HPC2, the model save path is '/data/cmpe249-fa22/Mymodels/waymokitti_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/pointpillar.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/pointpillar/0504/ckpt/checkpoint_epoch_128.pth'
@@ -262,23 +262,42 @@ Copy the split data (json files in 'https://github.com/AIR-THU/DAIR-V2X/tree/mai
 Convert the dataset to KITTI format 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In 'mydetector3d/datasets/dairv2x/dair2kitti.py', first create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
- * Created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', copy 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to 'velodyne' folder.
- * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), create 'target_root/label/lidar/' folder
- * write json to target_root/labels_path
- * gen_lidar2cam, write /data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar/000000.json
- * json2kitti convert the json file to kitti txt file (/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2/000000.txt)
- * change code in write_kitti_in_txt, save txt to '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
+In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the vehicle-side data to Kitti format, set: 
+ * 'source-root=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/vehicle-side/'
+ * 'target-root=/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti'
+ * 'sourcelidarfolder=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-velodyne'
+ * 'split-path=/data/cmpe249-fa22/DAIR-C/split_datas/single-vehicle-split-data.json'
+ * 'sensor_view=vehicle'
+
+The conversion process involve the following major steps:
+ * First create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
+ * 'mykitti_pcd2bin': created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', convert pcd files in 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to bin files in Kitti 'velodyne' folder.
+ * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), for each data in data_info, 
+    * read 'calib/lidar_to_camera/id.json' and get Tr_velo_to_cam (3,4) 
+    * read labels_path 'label/lidar/id.json', for each label in labels, 
+       * get 'h, w, l, x, y, z, yaw_lidar', perform 'z = z - h / 2' get bottom_center
+       * convert bottom_center to camera coordinate, get 'alpha, yaw' from **get_camera_3d_8points** 
+       * use **convert_point** to get 'cam_x, cam_y, cam_z', and **set_label**
+    * Write labels to 'tmp_file/label/lidar/id.json', get 'path_camera_intrinsic' and 'path_lidar_to_camera' under calib folder, call **gen_calib2kitti** get kitti calibration
+ * use **json2kitti** to convert json label to kitti_label_root (/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2/000000.txt)
+    * change code in write_kitti_in_txt, save txt to '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
+ * Generate calibration files, 
  * The converted kitti folder is '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti'. The 'testing folder is empty', the image folder is not available in training, need to copy the images to training folder:
  
  .. code-block:: console
  
- (mycondapy39) [010796032@coe-hpc2 training]$ ls
- calib  label_2  velodyne
- (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2
- (mycondapy39) [010796032@coe-hpc2 training]$ cd image_2/
- (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-image/* .
+  (mycondapy39) [010796032@coe-hpc2 training]$ ls
+  calib  label_2  velodyne
+  (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2
+  (mycondapy39) [010796032@coe-hpc2 training]$ cd image_2/
+  (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-image/* .
 
+In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the infrastructure-side data to Kitti format, set: 
+ * 'source-root=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure/infrastructure-side/'
+ * 'target-root=/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti'
+ * 'sourcelidarfolder=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-infrastructure-side-velodyne'
+ * 'split-path=/data/cmpe249-fa22/DAIR-C/split_datas/single-infrastructure-split-data.json'
+ * 'sensor_view=infrastructure'
 
 Prepare the dataset 
 ~~~~~~~~~~~~~~~~~~~
