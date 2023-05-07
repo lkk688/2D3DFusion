@@ -57,12 +57,15 @@ __modelall__ = {
 }
 
 
-
+from mydetector3d.datasets.kitti.kitti_dataset import KittiDataset
 from mydetector3d.datasets.kitti.waymokitti_simpledataset import WaymoKittiDataset
+from mydetector3d.datasets.waymo.waymo_dataset import WaymoDataset
 from torch.utils.data import DataLoader
 __datasetall__ = {
+    'KittiDataset': KittiDataset,
     'WaymoKittiDataset': WaymoKittiDataset,
-    'waymokitti_dataset': WaymoKittiDataset
+    'waymokitti_dataset': WaymoKittiDataset,
+    'WaymoDataset': WaymoDataset
 }
 
 #newly created
@@ -87,15 +90,14 @@ def load_data_to_device(batch_dict, device):
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', help='specify the model config')
-    parser.add_argument('--dataset_cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/waymokitti_dataset.yaml', help='specify the dataset config')
+    parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0426', help='extra tag for this experiment')
     parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=1, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
-    parser.add_argument('--eval_only', default=True, help='')
+    parser.add_argument('--eval_only', default=True, help='') #When detection result is available, set to True and just run the evaluation
     parser.add_argument('--savebatchidx', type=int, default=1, help='Save one batch data to pkl for visualization')
     parser.add_argument('--infer_time', default=True, help='calculate inference latency') #action='store_true' true if specified
 
@@ -104,14 +106,15 @@ def parse_config():
     cfg = EasyDict()
     cfg_from_yaml_file(args.cfg_file, cfg)
     cfg.modelnamepath = Path(args.cfg_file).stem #Returns the substring from the beginning of filename: pointpillar
-    cfg.datasetname = Path(args.dataset_cfg_file).stem
+    
     ckptsplits = args.ckpt.split('/')  #[-2:-1]
+    cfg.datasetname = ckptsplits[-5] #Path(args.dataset_cfg_file).stem
     epoch =Path(ckptsplits[-1]).stem #remove .pth checkpoint_epoch_128.pth
     epoch =epoch.split('_')[-1] #get epoch number
     args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_epoch' + epoch
 
 
-    args.batch_size = cfg.OPTIMIZATION.BATCH_SIZE_PER_GPU
+    args.batch_size = cfg.OPTIMIZATION.BATCH_SIZE_PER_GPU #4
 
     args.output_dir = Path(args.outputpath) / 'eval' / args.savename
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -152,26 +155,29 @@ def load_weights_from_file(model, filename, device):
 def main():
     args, cfg = parse_config()
 
+    log_file = args.output_dir / ('log_eval_%s.txt' % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+    logger = common_utils.create_logger(log_file, rank=0)
+
     # if args.infer_time:
     #     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     check_gpus()
     device = torch_setgpu(args.gpuid)
 
     # Create dataset
-    
     datasetcfg = EasyDict()
     if  args.dataset_cfg_file is not None:
         #dataset_cfg = args.dataset_cfg_file #cfg.DATA_CONFIG
         cfg_from_yaml_file( args.dataset_cfg_file, datasetcfg)
     else: 
-        cfg_from_yaml_file(cfg.DATA_CONFIG, datasetcfg) #using the default DATA_CONFIG in the model cfg file
+        datasetcfg=cfg.DATA_CONFIG #dict
+        #cfg_from_yaml_file(cfg.DATA_CONFIG, datasetcfg) #using the default DATA_CONFIG in the model cfg file
     class_names=cfg.CLASS_NAMES #classnames from the model
     dataset = __datasetall__[datasetcfg.DATASET](
         dataset_cfg=datasetcfg,
         class_names=class_names,
         root_path=None,
         training=False,
-        logger=None,
+        logger=logger,
     )
     dataloader = DataLoader(
         dataset, batch_size=args.batch_size, pin_memory=True, num_workers=args.workers,
@@ -194,10 +200,13 @@ def main():
         model.to(device)
         model.eval()
 
-        det_annos, ret_dict = rundetection(dataloader, model, device, cfg, args, args.eval_output_dir)
+        det_annos, ret_dicts, ret_dict = rundetection(dataloader, model, device, cfg, args, args.eval_output_dir)
         resultfile=args.output_dir / 'result.pkl'
         with open(resultfile, 'wb') as f:
             pickle.dump(det_annos, f)
+        with open(args.output_dir / 'ret_dicts.pkl', 'wb') as f:
+            pickle.dump(ret_dicts, f)
+        print("Finished detection:", ret_dict)
     else:
         #load previous saved pkl
         resultfile=args.output_dir / 'result.pkl'
@@ -205,8 +214,9 @@ def main():
         det_annos = pickle.load(f)         # load file content as mydict
         f.close()
 
-    result_str, result_dict =runevaluation(cfg, dataset, det_annos, class_names, args.eval_output_dir)
-    print(len(result_dict))
+    result_str, result_dict =runevaluation(dataset, det_annos, class_names, args.eval_output_dir)
+    print(result_str)
+    print(result_dict)
 
 
 def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
@@ -222,6 +232,7 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
         dataset = dataloader.dataset
         class_names = dataset.class_names
         det_annos = []
+        ret_dicts = []
 
         if getattr(args, 'infer_time', False):
             start_iter = int(len(dataloader) * 0.1)
@@ -254,10 +265,19 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
                 disp_dict['infer_time'] = f'{infer_time_meter.val:.2f}({infer_time_meter.avg:.2f})'
 
             statistics_info(cfg, ret_dict, metric, disp_dict) #disp_dict: 'infer_time': '87057.09(87057.09)', 'recall_0.3': '(0, 68) / 69'
+            
+            #save more information to ret_dict
+            ret_dict['infer_time'] = infer_time_meter.val
+            ret_dict['pred_dicts'] = pred_dicts
+            ret_dict['gt_boxes'] = batch_dict['gt_boxes']
+            ret_dicts.append(ret_dict)
+
+            #convert to Kitti format, save result to txt file
             annos = dataset.generate_prediction_dicts(
                 batch_dict, pred_dicts, class_names,
                 output_path=eval_output_dir if args.save_to_file else None
             )#batch_size array, each dict is the Kitti annotation-like format dict (2D box is converted from 3D pred box)
+            #annos batch size=4 dict array, each contains 'name' array(335), 'score(335)', 'boxes_lidar(335,7)', 'pred_labels(335)'
             det_annos += annos #annos array: batchsize(16) pred_dict in each batch; det_annos array: all objects in all frames in the dataset
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
@@ -272,6 +292,7 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
                 save_dict['batch_dict']=batch_dict
                 save_dict['pred_dicts']=pred_dicts
                 save_dict['annos']=annos
+                save_dict['infer_time']=infer_time_meter.val
                 resultfile=args.savename + '_frame_%s.pkl' % str(i)
                 with open(args.output_dir / resultfile, 'wb') as f:
                     pickle.dump(save_dict, f)
@@ -293,49 +314,63 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
         print('Average predicted number of objects(%d samples): %.3f'
                     % (len(det_annos), total_pred_objects / max(1, len(det_annos))))
 
-    return det_annos, ret_dict
+    ret_dict['infer_time']=infer_time_meter.avg
+    ret_dict['total_pred_objects']=total_pred_objects
+    ret_dict['total_annos']=len(det_annos)
+    return det_annos, ret_dicts, ret_dict
 
-def runevaluation(cfg, dataset, det_annos, class_names, final_output_dir):
-    map_class_to_kitti = {
-    'Car': 'Car',
-    'Vehicle': 'Car',
-    'Pedestrian': 'Pedestrian',
-    'Cyclist': 'Cyclist',
-    }
-    newclassnames = []
-    for classname in class_names:
-        if classname in map_class_to_kitti:
-            newclassname = map_class_to_kitti[classname]
-            newclassnames.append(newclassname)
-    
-    # result_str, result_dict = dataset.evaluation(
+def runevaluation(dataset, det_annos, class_names, final_output_dir, kittiformat=False):
+        # result_str, result_dict = dataset.evaluation(
     #     det_annos, class_names,
     #     eval_metric=cfg.MODEL.POST_PROCESSING.EVAL_METRIC, #kitti
     #     output_path=final_output_dir
     # )
     #from .kitti_object_eval_python import eval as kitti_eval
     from mydetector3d.datasets.kitti.kitti_object_eval_python import eval as kitti_eval
+    from mydetector3d.datasets.kitti.kitti_utils import transform_annotations_to_kitti_format
+    eval_det_annos = copy.deepcopy(det_annos) #'boxes_lidar'
 
-    eval_det_annos = []#copy.deepcopy(det_annos)
-    eval_gt_annos = [copy.deepcopy(info['annos']) for info in dataset.kitti_infos]
+    if hasattr(dataset, "kitti_infos"):
+        datainfo=dataset.kitti_infos
+    elif hasattr(dataset, "infos"):
+        datainfo=dataset.infos #waymodataset has different name
+    if kittiformat is not True:
+        map_name_to_kitti = {
+                    'Vehicle': 'Car',
+                    'Pedestrian': 'Pedestrian',
+                    'Cyclist': 'Cyclist',
+                    'Sign': 'Sign',
+                    'Car': 'Car'
+                }
+        # newclassnames = []
+        # for classname in class_names:
+        #     if classname in map_name_to_kitti:
+        #         newclassname = map_name_to_kitti[classname]
+        #         newclassnames.append(newclassname)
+        class_names = [map_name_to_kitti[x] for x in class_names]
+        eval_gt_annos = [copy.deepcopy(info['annos']) for info in datainfo]
 
-    for det_anno in det_annos:
-        #for each frame, replace 'Vehicle' into Kitti's name "Car"
-        names=det_anno['name'] #array of all names
-        det_anno['name']=[sub.replace('Vehicle','Car') for sub in names]
-        eval_det_annos.append(det_anno)
+        transform_annotations_to_kitti_format(eval_det_annos, map_name_to_kitti=map_name_to_kitti)
+        transform_annotations_to_kitti_format(
+                    eval_gt_annos, map_name_to_kitti=map_name_to_kitti, info_with_fakelidar = False)
+
     
-    result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, newclassnames)
-    text_file = open(final_output_dir / "result_str", "w")
+    # for det_anno in det_annos:
+    #     #for each frame, replace 'Vehicle' into Kitti's name "Car"
+    #     names=det_anno['name'] #array of all names
+    #     det_anno['name']=[sub.replace('Vehicle','Car') for sub in names]
+    #     eval_det_annos.append(det_anno)
+    #     if 'alpha' not in det_anno.keys():
+    #         det_anno['alpha']=np.array([-10, -10]) #waymo dataset do not have alpha result
+    
+    result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
+    text_file = open(final_output_dir / "evalresult_str", "w")
     text_file.write(result_str)
     text_file.close()
 
-    resultfile=final_output_dir / 'result_dict.pkl'
+    resultfile=final_output_dir / 'evalresult_dict.pkl'
     with open(resultfile, 'wb') as f:
         pickle.dump(result_dict, f)
-
-    print(result_str)
-    print(result_dict)
     #ret_dict.update(result_dict)
 
     print('Result is saved to %s' % final_output_dir)

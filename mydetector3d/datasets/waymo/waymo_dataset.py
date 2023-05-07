@@ -22,9 +22,6 @@ from mydetector3d.datasets import DatasetTemplate
 # from ...utils import box_utils, common_utils
 # from ..dataset import DatasetTemplate
 
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0" #"0,1"
-
 class WaymoDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None):
         super().__init__(

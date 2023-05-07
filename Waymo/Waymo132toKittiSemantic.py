@@ -426,15 +426,15 @@ def extract_onesegment_toKittiSemantic(fileidx, tfrecord_pathnames, step, base_f
 
 
 if __name__ == "__main__":
-    folders = ["training_0000"]
+    folders = ["training_0002"]
     root_path = "/data/cmpe249-fa22/Waymo132/"
-    out_dir = "/data/cmpe249-fa22/Waymo132KittiSematic2"
+    out_dir = "/data/cmpe249-fa22/Waymo132KittiSematic_train2"
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     data_files = [path for x in folders for path in glob(
         os.path.join(root_path, x, "*.tfrecord"))]
-    print("totoal number of files:", len(data_files))  # 886
+    print("totoal number of files:", len(data_files))  # 24 in train0
     prefix = 'train0_'
     step = 1
     for fileidx in range(len(data_files)):

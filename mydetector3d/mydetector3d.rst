@@ -3,16 +3,53 @@ mydetector3d training and evaluation
 
 .. _setup:
 
-Waymo Dataset Trained Models
-------------
+Trained Models
+----------------------------
 
-These three models are trained based on Waymo dataset in HPC2, the model saved path is '/data/cmpe249-fa22/Mymodels/waymo_models/'
+These three models are trained based on ** Waymo ** dataset in HPC2, the model saved path is '/data/cmpe249-fa22/Mymodels/waymo_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0427b/ckpt/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext_ioubranch/0429/ckpt/'
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth'
+    * Evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
+
+New models are trained based on our converted ** WaymoKitti** dataset in HPC2, the model save path is '/data/cmpe249-fa22/Mymodels/waymokitti_models/'
+  * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/pointpillar.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/pointpillar/0504/ckpt/checkpoint_epoch_128.pth'
+  * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/second.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0502/ckpt/checkpoint_epoch_128.pth'
+  * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/voxelnext_3class.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/voxelnext_3class/0430/ckpt/checkpoint_epoch_72.pth'
+  * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/my3dmodel/0505/ckpt/latest_model.pth'
+
+Model Evaluation
+----------------
+Evaluation results performed by 'myevaluatev2.py' are all saved in the folder of '/data/cmpe249-fa22/Mymodels/eval/', the naming of the folder is 'datasetname'+'modelname'+'epochnumber'
+
+In each folder, e.g., '/data/cmpe249-fa22/Mymodels/eval/waymokitti_dataset_mysecond_epoch128/', there are three results (.pkl) saved by the detection function
+  * result.pkl file: the detection results in kitti format, i.e., det_annos array. Used for evaluation
+  * ret_dicts.pkl: the detection results, groundtruth, and inference time for each frame
+  * txtresults: detection results saved in Kitti format, the 2D bounding box is converted from 3D bounding box.
+  * waymokitti_dataset_mysecond_epoch128_frame_1.pkl (naming: 'datasetname_model_name_epochnumber_framenumber') saved whole frame data with original Lidar points and groundtruth. Input this pkl file to 'visonebatch.py' to visualize the 3D detection results
+
+The following results are saved by the evaluation function **runevaluation**
+  * result_str txt file: kitti evaluation results
+  * result_dict.pkl: recall related evaluation data
+
+In ** runevaluation ** , input "det_annos" from detection results
+  * get infos from dataset.infos, each anno dict in det_annos contain the following keys: 'point_cloud', 'frame_id', 'metadata', 'image', 'annos', 'pose', and 'num_points_of_each_lidar' (5 Lidars)
+  * The 'annos' key contain key 'gt_boxes_lidar' (63,9), 'dimensions', 'location', 'heading_angles' ,...
+  * The 'annos' part are convert to **eval_gt_annos** via the following code
+
+  .. code-block:: console
+
+    eval_det_annos = copy.deepcopy(det_annos) # contains 'boxes_lidar' (N,7) key
+    eval_gt_annos = [copy.deepcopy(info['annos']) for info in datainfo] # contains 'gt_boxes_lidar' (N,7) key
+    transform_annotations_to_kitti_format(eval_det_annos, map_name_to_kitti=map_name_to_kitti)
+    transform_annotations_to_kitti_format(
+                    eval_gt_annos, map_name_to_kitti=map_name_to_kitti, info_with_fakelidar = False)
+    result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
+
+
 
 Waymo Dataset Process
-------------
+--------------------
 
 Prepare the dataset 
 ~~~~~~~~~~~
@@ -42,6 +79,16 @@ In ** mygengtdb ** function->create_waymo_gt_database:
 
 Initialize the dataset during training
 ~~~~~~~~~~~
+Initialize class DatasetTemplate (in dataset.py), setup three processors specified in "DATA_PROCESSOR" section of the configuration file "mydetector3d/tools/cfgs/dataset_configs/mywaymo_dataset.yaml"
+  * point_feature_encoder (based on dataset_cfg.POINT_FEATURE_ENCODING), 
+  * data_augmentor (based on dataset_cfg.DATA_AUGMENTOR), 
+  * data_processor (based on dataset_cfg.DATA_PROCESSOR). Get grid_size and voxel_size from data_processor.
+
+  .. code-block:: console
+
+  self.grid_size = self.data_processor.grid_size #[1504, 1504, 40] = POINT_CLOUD_RANGE/voxel_size
+  self.voxel_size = self.data_processor.voxel_size #[0.1, 0.1, 0.15]meters
+
 Initialize class WaymoDataset in 'mydetector3d/datasets/waymo/waymo_dataset.py', read infos[] via include_waymo_data function
   * In ** include_waymo_data ** function: Iterate through sample_sequence_list (all tfrecord files), load pkl file as infos in each sequence folder, add all together to infos[].
 

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class DAIRV2XI(DAIRV2XDataset):
     def __init__(self, path, args, split="train", sensortype="lidar", extended_range=None):
         super().__init__(path, args, split, extended_range)
-        data_infos = load_json(osp.join(path, "infrastructure-side/data_info.json"))
+        data_infos = load_json(osp.join(path, "infrastructure-side/data_info.json")) #Relevant index information of Infrastructure data
         split_path = args.split_data_path #data/split_datas/example-cooperative-split-data.json'
         data_infos = self.get_split(split_path, split, data_infos)
 
@@ -20,19 +20,19 @@ class DAIRV2XI(DAIRV2XDataset):
             "",
             load_json(osp.join(path, "infrastructure-side/data_info.json")),
             sensortype,
-        )
+        ) #dict, image name to data_info
 
         self.data = []
         for elem in data_infos: #selected 15 infos
             gt_label = {}
             filt = RectFilter(extended_range[0]) if extended_range is not None else Filter()
-            gt_label["camera"] = Label(osp.join(path, "infrastructure-side", elem["label_camera_std_path"]), filt)
-            gt_label["lidar"] = Label(osp.join(path, "infrastructure-side", elem["label_lidar_std_path"]), filt)
+            gt_label["camera"] = Label(osp.join(path, "infrastructure-side", elem["label_camera_std_path"]), filt) #label/camera/idxxx.json
+            gt_label["lidar"] = Label(osp.join(path, "infrastructure-side", elem["label_lidar_std_path"]), filt) #label/virtuallidar/000018.json
 
-            self.data.append((InfFrame(path, elem), gt_label, filt))
+            self.data.append((InfFrame(path, elem), gt_label, filt)) #3 objects
 
             if sensortype == "camera":
-                inf_frame = self.inf_path2info[elem["image_path"]]
+                inf_frame = self.inf_path2info[elem["image_path"]] #using camera name get info frame
                 get_annos(path + "/infrastructure-side", "", inf_frame, "camera")
 
     def get_split(self, split_path, split, data_infos):
@@ -164,7 +164,9 @@ if __name__ == "__main__":
     extended_range = np.array([[box_range[index] for index in indexs]]) #(1,8,3)
     dataset = DAIRV2XI(input, args, split, sensortype, extended_range=extended_range)
 
+    idx = -1
     for Frame_data, label, filt in tqdm(dataset):
-        veh_image_path = Frame_data.vehicle_frame()["image_path"][-10:-4]
-        inf_image_path = Frame_data.infrastructure_frame()["image_path"][-10:-4]
-        print(veh_image_path, inf_image_path)
+        print(label["camera"])
+        print(label["lidar"])
+        idx += 1
+        
