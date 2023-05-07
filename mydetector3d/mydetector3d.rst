@@ -46,13 +46,86 @@ In ** runevaluation ** , input "det_annos" from detection results
                     eval_gt_annos, map_name_to_kitti=map_name_to_kitti, info_with_fakelidar = False)
     result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 
+Kitti Dataset Process
+-----------------------------
+Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', create 'kitti_infos_train.pkl', 'kitti_infos_val.pkl', 'kitti_infos_trainval.pkl', and 'kitti_infos_test.pkl' based on split file
+ * call dataset.get_infos to generate each info.pkl file, process each file in sample_id_list via **process_single_scene**, save these infos
 
+.. code-block:: console
+
+ pc_info = {'num_features': 4, 'lidar_idx': sample_idx}
+ info['point_cloud'] = pc_info
+ image_info = {'image_idx': sample_idx, 'image_shape': self.get_image_shape(sample_idx)}
+ info['image'] = image_info
+ info['calib'] = calib_info
+ info['annos'] = annotations
+
+**annotations** dict contains: ['name'], ['truncated'], ['occluded'], ['alpha'], ['bbox'], ['dimensions']: lhw(camera) format, ['location'], ['rotation_y'], ['score'], ['difficulty'], among them
+
+.. code-block:: console
+
+ loc_lidar = calib.rect_to_lidar(loc)
+ l, h, w = dims[:, 0:1], dims[:, 1:2], dims[:, 2:3]
+ loc_lidar[:, 2] += h[:, 0] / 2
+ gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
+ annotations['gt_boxes_lidar'] = gt_boxes_lidar
+
+
+My Waymokitti Dataset Process
+-----------------------------
+My Waymokitti Dataset saved in '/data/cmpe249-fa22/WaymoKitti/4c_train5678'
+
+.. code-block:: console
+
+(mycondapy39) [010796032@coe-hpc2 cmpe249-fa22]$ ls /data/cmpe249-fa22/WaymoKitti/4c_train5678/
+ImageSets   training                 waymo_gt_database      waymo_infos_trainval.pkl
+ImageSets2  waymo_dbinfos_train.pkl  waymo_infos_train.pkl  waymo_infos_val.pkl
+
+Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://github.com/lkk688/WaymoObjectDetection', run the following code 
+
+  .. code-block:: console
+  
+  [DatasetTools]$ python Waymo2KittiAsync.py
+  [DatasetTools]$ python mycreatewaymoinfo.py --createsplitfile_only
+  [DatasetTools]$ python mycreatewaymoinfo.py --createinfo_only
+ 
+The groundtruth db generation is done in https://github.com/lkk688/mymmdetection3d
+
+In **mycreatewaymoinfo.py**, createinfo_only will call **get_waymo_image_info** in 'https://github.com/lkk688/WaymoObjectDetection/blob/master/DatasetTools/myWaymoinfo_utils.py', it will create the following info
+Waymo annotation format version like KITTI:
+    {
+        [optional]points: [N, 3+] point cloud
+        [optional, for kitti]image: {
+            image_idx: ...
+            image_path: ...
+            image_shape: ...
+        }
+        point_cloud: {
+            num_features: 4 #6
+            velodyne_path: ...
+        }
+        [optional, for kitti]calib: {
+            R0_rect: ...
+            Tr_velo_to_cam0: ...
+            P0: ...
+        }
+        annos: {
+            location: [num_gt, 3] array
+            dimensions: [num_gt, 3] array
+            rotation_y: [num_gt] angle array
+            name: [num_gt] ground truth name array
+            [optional]difficulty: kitti difficulty
+            [optional]group_ids: used for multi-part object
+        }
+    }
+
+Created a new dataset file 'mydetector3d/datasets/kitti/waymokitti_dataset.py' based on kitti_dataset.py.
 
 Waymo Dataset Process
 --------------------
 
 Prepare the dataset 
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 In 'mydetector3d/datasets/waymo/waymo_dataset.py', specify the '--func' in main to select different preprocessing functions.
   * mycreateImageSet: Create the folder 'ImageSets' for the list of train val split file names under '/data/cmpe249-fa22/Waymo132/ImageSets/'
   * ** mygeninfo **: create info files based on the provided folder list, the processed_data_tag='train0to9'  
@@ -143,3 +216,69 @@ In **  __getitem__ ** function
   #. Voxels: (89196, 32, 4) 32 is max_points_per_voxel 4 is feature(x,y,z,intensity)
   #. Voxel_coords: (89196, 4) (batch_index,z,y,x) added batch_index in dataset.collate_batch
   #. Voxel_num_points: (89196,)
+
+
+DAIR V2X Dataset Process
+------------------------
+DAIR V2X dataset is saved in '/data/cmpe249-fa22/DAIR-C' folder. Based on 'https://github.com/AIR-THU/DAIR-V2X/blob/main/docs/get_started.md', 
+* 'cooperative-vehicle-infrastructure' folder as the follow three sub-folders: cooperative  infrastructure-side  vehicle-side
+* 'infrastructure-side' and 'vehicle-side' has 'image', 'velodyne', 'calib', and 'label', and data_info.json as follows. 
+* 'vehicle-side' label is in **Vehicle LiDAR Coordinate System**, while 'infrastructure-side' label is in **Infrastructure Virtual LiDAR Coordinate System**
+
+    ├── infrastructure-side             # DAIR-V2X-C-I
+        ├── image		    
+            ├── {id}.jpg
+        ├── velodyne                
+            ├── {id}.pcd           
+        ├── calib                 
+            ├── camera_intrinsic            
+                ├── {id}.json     
+            ├── virtuallidar_to_world   
+                ├── {id}.json      
+            ├── virtuallidar_to_camera  
+                ├── {id}.json      
+        ├── label	
+            ├── camera                  # Labeled data in Infrastructure Virtual LiDAR Coordinate System fitting objects in image based on image frame time
+                ├── {id}.json
+            ├── virtuallidar            # Labeled data in Infrastructure Virtual LiDAR Coordinate System fitting objects in point cloud based on point cloud frame time
+                ├── {id}.json
+        ├── data_info.json              # Relevant index information of Infrastructure data
+
+ * The 'cooperative' folder contains the following files
+    ├── cooperative                     # Coopetative Files
+        ├── label_world                 # Vehicle-Infrastructure Cooperative (VIC) Annotation files
+            ├── {id}.json           
+        ├── data_info.json              # Relevant index information combined the Infrastructure data and the Vehicle data
+
+There are four data folders under root '/data/cmpe249-fa22/DAIR-C':
+ * 'cooperative-vehicle-infrastructure-vehicle-side-image' folder contains all images (6digit_id.jpg) in vehicle side.
+ * 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' folder contains all lidar files (6digit_id.pcd) in vehicle side.
+ * 'cooperative-vehicle-infrastructure-infrastructure-side-image' folder contains all images (6digit_id.jpg) in infrastructure side.
+ * 'cooperative-vehicle-infrastructure-infrastructure-side-velodyne' folder contains all lidar files (6digit_id.pcd) in infrastructure side.
+ 
+ 
+Copy the split data (json files in 'https://github.com/AIR-THU/DAIR-V2X/tree/main/data/split_datas') to the data folder ('/data/cmpe249-fa22/DAIR-C')
+
+Convert the dataset to KITTI format 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In 'mydetector3d/datasets/dairv2x/dair2kitti.py', first create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
+ * Created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', copy 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to 'velodyne' folder.
+ * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), create 'target_root/label/lidar/' folder
+ * write json to target_root/labels_path
+ * gen_lidar2cam, write /data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar/000000.json
+ * json2kitti convert the json file to kitti txt file (/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2/000000.txt)
+ * change code in write_kitti_in_txt, save txt to '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2'
+ * The converted kitti folder is '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti'. The 'testing folder is empty', the image folder is not available in training, need to copy the images to training folder:
+ 
+ .. code-block:: console
+ 
+ (mycondapy39) [010796032@coe-hpc2 training]$ ls
+ calib  label_2  velodyne
+ (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2
+ (mycondapy39) [010796032@coe-hpc2 training]$ cd image_2/
+ (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-vehicle-side-image/* .
+
+
+Prepare the dataset 
+~~~~~~~~~~~~~~~~~~~
