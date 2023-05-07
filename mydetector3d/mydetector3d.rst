@@ -73,6 +73,14 @@ Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', cr
 
 My Waymokitti Dataset Process
 -----------------------------
+My Waymokitti Dataset saved in '/data/cmpe249-fa22/WaymoKitti/4c_train5678'
+
+.. code-block:: console
+
+(mycondapy39) [010796032@coe-hpc2 cmpe249-fa22]$ ls /data/cmpe249-fa22/WaymoKitti/4c_train5678/
+ImageSets   training                 waymo_gt_database      waymo_infos_trainval.pkl
+ImageSets2  waymo_dbinfos_train.pkl  waymo_infos_train.pkl  waymo_infos_val.pkl
+
 Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://github.com/lkk688/WaymoObjectDetection', run the following code 
 
   .. code-block:: console
