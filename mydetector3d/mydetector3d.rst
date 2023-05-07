@@ -46,7 +46,20 @@ In ** runevaluation ** , input "det_annos" from detection results
                     eval_gt_annos, map_name_to_kitti=map_name_to_kitti, info_with_fakelidar = False)
     result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 
+My Waymokitti Dataset Process
+-----------------------------
+Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://github.com/lkk688/WaymoObjectDetection', run the following code 
 
+  .. code-block:: console
+  
+  [DatasetTools]$ python Waymo2KittiAsync.py
+  [DatasetTools]$ python mycreatewaymoinfo.py --createsplitfile_only
+  [DatasetTools]$ python mycreatewaymoinfo.py --createinfo_only
+ 
+The groundtruth db generation is done in https://github.com/lkk688/mymmdetection3d
+  
+
+Created a new dataset file 'mydetector3d/datasets/kitti/waymokitti_dataset.py' based on kitti_dataset.py.
 
 Waymo Dataset Process
 --------------------
