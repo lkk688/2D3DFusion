@@ -80,7 +80,7 @@ def trans_point_i2v(input_point, path_virtuallidar2world, path_novatel2world, pa
 
     # virtuallidar to world
     rotation, translation, delta_x, delta_y = get_virtuallidar2world(path_virtuallidar2world)
-    point = trans(input_point, translation, rotation) + np.array([delta_x, delta_y, 0]).reshape(3, 1)
+    point = trans(input_point, translation, rotation) + np.array([delta_x, delta_y, 0]).reshape(3, 1) #(3, 54309)
     """
     print('rotation, translation, delta_x, delta_y', rotation, translation, delta_x, delta_y)
     print('1:', point)
@@ -90,7 +90,7 @@ def trans_point_i2v(input_point, path_virtuallidar2world, path_novatel2world, pa
     rotation, translation = get_novatel2world(path_novatel2world)
     new_rotation = rev_matrix(rotation)
     new_translation = -np.dot(new_rotation, translation)
-    point = trans(point, new_translation, new_rotation)
+    point = trans(point, new_translation, new_rotation) #(3, 54309)
     """
     print('rotation, translation:', rotation, translation)
     print('new_translation, new_rotation:', new_translation, new_rotation)
@@ -98,7 +98,7 @@ def trans_point_i2v(input_point, path_virtuallidar2world, path_novatel2world, pa
     """
 
     # novatel to lidar
-    rotation, translation = get_lidar2novatel(path_lidar2novatel)
+    rotation, translation = get_lidar2novatel(path_lidar2novatel) #vehicle-side/calib/lidar_to_novatel
     new_rotation = rev_matrix(rotation)
     new_translation = -np.dot(new_rotation, translation)
     point = trans(point, new_translation, new_rotation)
@@ -109,7 +109,7 @@ def trans_point_i2v(input_point, path_virtuallidar2world, path_novatel2world, pa
     """
     point = point.T
 
-    return point
+    return point #(54309, 3)
 
 
 def read_pcd(path_pcd):
@@ -133,7 +133,7 @@ def write_pcd(path_pcd, new_points, path_save):
 
 def trans_pcd_i2v(path_pcd, path_virtuallidar2world, path_novatel2world, path_lidar2novatel, path_save):
     # (n, 3)
-    points = read_pcd(path_pcd)
+    points = read_pcd(path_pcd) #infrastructure side lidar pcd
     # (n, 3)
     new_points = trans_point_i2v(points.T, path_virtuallidar2world, path_novatel2world, path_lidar2novatel)
     write_pcd(path_pcd, new_points, path_save)
@@ -142,7 +142,7 @@ def trans_pcd_i2v(path_pcd, path_virtuallidar2world, path_novatel2world, path_li
 def map_func(data, path_c, path_dest, i_data_info, v_data_info):
     path_pcd_i = os.path.join(path_c, data["infrastructure_pointcloud_path"])
     path_pcd_v = os.path.join(path_c, data["vehicle_pointcloud_path"])
-    i_data = get_data(i_data_info, path_pcd_i)
+    i_data = get_data(i_data_info, path_pcd_i) #find the data matched to the frame
     v_data = get_data(v_data_info, path_pcd_v)
     path_virtuallidar2world = os.path.join(
         path_c, "infrastructure-side", i_data["calib_virtuallidar_to_world_path"]
@@ -150,38 +150,39 @@ def map_func(data, path_c, path_dest, i_data_info, v_data_info):
     path_novatel2world = os.path.join(path_c, "vehicle-side", v_data["calib_novatel_to_world_path"])
     path_lidar2novatel = os.path.join(path_c, "vehicle-side", v_data["calib_lidar_to_novatel_path"])
     name = os.path.split(path_pcd_i)[-1]
-    path_save = os.path.join(path_dest, name)
+    path_save = os.path.join(path_dest, name) #save to /vic3d-early-fusion/velodyne/lidar_i2v/000049.pcd
     trans_pcd_i2v(path_pcd_i, path_virtuallidar2world, path_novatel2world, path_lidar2novatel, path_save)
     
     
 def get_i2v(path_c, path_dest, num_worker):
-    mkdir_p(path_dest)
+    mkdir_p(path_dest) #create vic3d-early-fusion folder
     path_c_data_info = os.path.join(path_c, "cooperative/data_info.json")
     path_i_data_info = os.path.join(path_c, "infrastructure-side/data_info.json")
     path_v_data_info = os.path.join(path_c, "vehicle-side/data_info.json")
-    c_data_info = read_json(path_c_data_info)
-    i_data_info = read_json(path_i_data_info)
-    v_data_info = read_json(path_v_data_info)
+    c_data_info = read_json(path_c_data_info) #46
+    i_data_info = read_json(path_i_data_info) #84
+    v_data_info = read_json(path_v_data_info) #91
     
-    total = len(c_data_info)
+    total = len(c_data_info) #46
     with tqdm(total=total) as pbar:
         with futures.ProcessPoolExecutor(num_worker) as executor:
             res = [executor.submit(map_func, data, path_c, path_dest, i_data_info, v_data_info) for data in c_data_info]
             for _ in futures.as_completed(res):
                 pbar.update(1)
 
-                
+
+Dataset_root='/mnt/f/Dataset/DAIR-C/cooperative-vehicle-infrastructure-example_10906136335224832/cooperative-vehicle-infrastructure-example/'    
 parser = argparse.ArgumentParser("Convert The Point Cloud from Infrastructure to Ego-vehicle")
 parser.add_argument(
     "--source-root",
     type=str,
-    default="./data/DAIR-V2X/cooperative-vehicle-infrastructure",
+    default=Dataset_root,
     help="Raw data root about DAIR-V2X-C.",
 )
 parser.add_argument(
     "--target-root",
     type=str,
-    default="./data/DAIR-V2X/cooperative-vehicle-infrastructure/vic3d-early-fusion/velodyne/lidar_i2v",
+    default=Dataset_root+"vic3d-early-fusion/velodyne/lidar_i2v",
     help="The data root where the data with ego-vehicle coordinate is generated",
 )
 parser.add_argument(
