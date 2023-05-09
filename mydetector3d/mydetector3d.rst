@@ -244,6 +244,32 @@ In **  __getitem__ ** function
   #. Voxel_coords: (89196, 4) (batch_index,z,y,x) added batch_index in dataset.collate_batch
   #. Voxel_num_points: (89196,)
 
+Start the training for all waymo data
+
+.. code-block:: console
+
+  (mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/tools/mytrain.py
+  2023-05-08 19:16:49,940   INFO  cfg_file         mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml
+  2023-05-08 19:16:49,940   INFO  batch_size       8
+  2023-05-08 19:16:49,940   INFO  epochs           256
+  2023-05-08 19:16:49,940   INFO  workers          4
+  2023-05-08 19:16:49,940   INFO  extra_tag        0508
+  2023-05-08 19:16:49,940   INFO  ckpt             /data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth
+  2023-05-08 19:16:49,967   INFO  ----------- Create dataloader & network & optimizer -----------
+  2023-05-08 19:16:53,197   INFO  Database filter by min points Vehicle: 244715 => 209266
+  2023-05-08 19:16:53,222   INFO  Database filter by min points Pedestrian: 231457 => 196642
+  2023-05-08 19:16:53,225   INFO  Database filter by min points Cyclist: 11475 => 10211
+  2023-05-08 19:16:53,248   INFO  Database filter by difficulty Vehicle: 209266 => 209266
+  2023-05-08 19:16:53,271   INFO  Database filter by difficulty Pedestrian: 196642 => 196642
+  2023-05-08 19:16:53,272   INFO  Database filter by difficulty Cyclist: 10211 => 10211
+  2023-05-08 19:16:53,323   INFO  Loading Waymo dataset
+  2023-05-08 19:16:54,998   INFO  Total skipped info 0
+  2023-05-08 19:16:54,998   INFO  Total samples for Waymo dataset: 25867
+  2023-05-08 19:16:54,998   INFO  Total sampled samples for Waymo dataset: 5174
+  Num point features initial 5
+  Num point features after VFE 64
+  num_bev_features features after BEV 64
+  num_bev_features features after backbone2d 384
 
 DAIR V2X Dataset Process
 ------------------------
