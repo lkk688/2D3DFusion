@@ -9,8 +9,10 @@ Trained Models
 These three models are trained based on ** Waymo ** dataset in HPC2, the model saved path is '/data/cmpe249-fa22/Mymodels/waymo_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0427b/ckpt/'
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext_ioubranch.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext_ioubranch/0429/ckpt/'
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth', evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth', evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch128'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/mysecond.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/mysecond/0429/ckpt/checkpoint_epoch_128.pth'
+     * evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_mysecond_epoch128'
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'
+     * evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch128'
 
 New models are trained based on our converted ** WaymoKitti** dataset in HPC2, the model save path is '/data/cmpe249-fa22/Mymodels/waymokitti_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/pointpillar.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/pointpillar/0504/ckpt/checkpoint_epoch_128.pth'
@@ -150,8 +152,33 @@ In ** mygengtdb ** function->create_waymo_gt_database:
 
       * created '%s_gt_database_%s_sampled_%d' folder under the root
 
+Prepare all dataset
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: console
+
+ (mycondapy39) [010796032@cs001 waymo]$ python waymo_dataset.py --func 'mycreateImageSet'
+ Total files: 648
+ Train size: (518, 1)
+ Val size: (130, 1)
+ Done in /data/cmpe249-fa22/Waymo132/ImageSets/trainval.txt
+ Done in /data/cmpe249-fa22/Waymo132/ImageSets/train.txt
+ Done in /data/cmpe249-fa22/Waymo132/ImageSets/val.txt
+ (mycondapy39) [010796032@cs001 waymo]$ python waymo_dataset.py --func 'mygeninfo'
+ totoal number of files: 648
+ (mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/datasets/waymo/waymo_dataset.py --func 'mygengtdb'
+  Total samples for Waymo dataset: 6485
+  ---------------Start create groundtruth database for data augmentation---------------
+  2023-05-08 18:06:49,870   INFO  Loading Waymo dataset
+  2023-05-08 18:07:23,908   INFO  Total skipped info 0
+  2023-05-08 18:07:23,908   INFO  Total samples for Waymo dataset: 25867
+  Database Vehicle: 244715
+  Database Pedestrian: 231457
+  Database Cyclist: 11475                                                                                                
+  ---------------Data preparation Done---------------
+
 Initialize the dataset during training
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Initialize class DatasetTemplate (in dataset.py), setup three processors specified in "DATA_PROCESSOR" section of the configuration file "mydetector3d/tools/cfgs/dataset_configs/mywaymo_dataset.yaml"
   * point_feature_encoder (based on dataset_cfg.POINT_FEATURE_ENCODING), 
   * data_augmentor (based on dataset_cfg.DATA_AUGMENTOR), 
@@ -217,6 +244,32 @@ In **  __getitem__ ** function
   #. Voxel_coords: (89196, 4) (batch_index,z,y,x) added batch_index in dataset.collate_batch
   #. Voxel_num_points: (89196,)
 
+Start the training for all waymo data
+
+.. code-block:: console
+
+  (mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/tools/mytrain.py
+  2023-05-08 19:16:49,940   INFO  cfg_file         mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml
+  2023-05-08 19:16:49,940   INFO  batch_size       8
+  2023-05-08 19:16:49,940   INFO  epochs           256
+  2023-05-08 19:16:49,940   INFO  workers          4
+  2023-05-08 19:16:49,940   INFO  extra_tag        0508
+  2023-05-08 19:16:49,940   INFO  ckpt             /data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth
+  2023-05-08 19:16:49,967   INFO  ----------- Create dataloader & network & optimizer -----------
+  2023-05-08 19:16:53,197   INFO  Database filter by min points Vehicle: 244715 => 209266
+  2023-05-08 19:16:53,222   INFO  Database filter by min points Pedestrian: 231457 => 196642
+  2023-05-08 19:16:53,225   INFO  Database filter by min points Cyclist: 11475 => 10211
+  2023-05-08 19:16:53,248   INFO  Database filter by difficulty Vehicle: 209266 => 209266
+  2023-05-08 19:16:53,271   INFO  Database filter by difficulty Pedestrian: 196642 => 196642
+  2023-05-08 19:16:53,272   INFO  Database filter by difficulty Cyclist: 10211 => 10211
+  2023-05-08 19:16:53,323   INFO  Loading Waymo dataset
+  2023-05-08 19:16:54,998   INFO  Total skipped info 0
+  2023-05-08 19:16:54,998   INFO  Total samples for Waymo dataset: 25867
+  2023-05-08 19:16:54,998   INFO  Total sampled samples for Waymo dataset: 5174
+  Num point features initial 5
+  Num point features after VFE 64
+  num_bev_features features after BEV 64
+  num_bev_features features after backbone2d 384
 
 DAIR V2X Dataset Process
 ------------------------
@@ -298,6 +351,18 @@ In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the infrastructure-sid
  * 'sourcelidarfolder=/data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-infrastructure-side-velodyne'
  * 'split-path=/data/cmpe249-fa22/DAIR-C/split_datas/single-infrastructure-split-data.json'
  * 'sensor_view=infrastructure'
+
+Created kitti folder "/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti"
+
+.. code-block:: console
+ (mycondapy39) [010796032@coe-hpc2 DAIR-C]$ cd infrastructure-side-point-cloud-kitti/
+ (mycondapy39) [010796032@coe-hpc2 infrastructure-side-point-cloud-kitti]$ ls
+ ImageSets  testing  training
+ (mycondapy39) [010796032@coe-hpc2 infrastructure-side-point-cloud-kitti]$ cd training/
+ (mycondapy39) [010796032@coe-hpc2 training]$ ls
+ calib  label_2  velodyne
+ (mycondapy39) [010796032@coe-hpc2 training]$ mkdir image_2 && cd image_2
+ (mycondapy39) [010796032@coe-hpc2 image_2]$ cp /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-infrastructure-side-image/* .
 
 Prepare the dataset 
 ~~~~~~~~~~~~~~~~~~~
