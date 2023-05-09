@@ -54,7 +54,7 @@ In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the vehicle-side data 
 
 The conversion process involve the following major steps:
  * First create kitti folder, then call **rawdata_copy** to copy images from source to target (kitti folder).
- * 'mykitti_pcd2bin': created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', convert pcd files in 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to bin files in Kitti 'velodyne' folder.
+ * 'mykitti_pcd2bin': created new folder '/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/velodyne', convert pcd files in 'cooperative-vehicle-infrastructure-vehicle-side-velodyne' to bin files in Kitti 'velodyne' folder. Get xyz and intensity from pcd file, divide intensity/255, save xyz and new intensity to kitti velodyne bin file.
  * 'gen_lidar2cam', data_info=read_json(source_root/data_info.json), for each data in data_info, 
     * read 'calib/lidar_to_camera/id.json' and get Tr_velo_to_cam (3,4) 
     * read labels_path 'label/lidar/id.json', for each label in labels, 
