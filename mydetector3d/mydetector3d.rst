@@ -1,5 +1,5 @@
 mydetector3d training and evaluation
-=====
+===================================
 
 .. _setup:
 
