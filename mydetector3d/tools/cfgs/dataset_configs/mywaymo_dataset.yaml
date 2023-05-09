@@ -1,6 +1,6 @@
 DATASET: 'WaymoDataset'
 DATA_PATH: '/data/cmpe249-fa22/Waymo132'
-PROCESSED_DATA_TAG: 'train0to9' #'waymo_processed_data_v0_5_0'
+PROCESSED_DATA_TAG: 'trainall' #'train0to9' #'waymo_processed_data_v0_5_0'
 
 POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
 
@@ -26,11 +26,11 @@ DATA_AUGMENTOR:
         - NAME: gt_sampling
           USE_ROAD_PLANE: False
           DB_INFO_PATH:
-              - train0to9_waymo_dbinfos_train_sampled_1.pkl
+              - trainall_waymo_dbinfos_train_sampled_1.pkl #train0to9_waymo_dbinfos_train_sampled_1.pkl
 
           USE_SHARED_MEMORY: False  # set it to True to speed up (it costs about 15GB shared memory)
           DB_DATA_PATH:
-              - train0to9_gt_database_train_sampled_1_global.npy
+              - trainall_gt_database_train_sampled_1_global.npy #train0to9_gt_database_train_sampled_1_global.npy
 
           PREPARE: {
              filter_by_min_points: ['Vehicle:5', 'Pedestrian:5', 'Cyclist:5'],
