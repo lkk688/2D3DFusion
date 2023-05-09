@@ -882,7 +882,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/waymo_dataset.yaml', help='specify the config of dataset')
     parser.add_argument('--func', type=str, default='mycreateImageSet', help='')
-    parser.add_argument('--processed_data_tag', type=str, default='waymo_processed_data_v0_5_0', help='')
+    parser.add_argument('--processed_data_tag', type=str, default='trainall', help='')
     parser.add_argument('--update_info_only', action='store_true', default=False, help='')
     parser.add_argument('--use_parallel', action='store_true', default=False, help='')
     parser.add_argument('--wo_crop_gt_with_tail', action='store_true', default=False, help='')
@@ -893,6 +893,10 @@ if __name__ == '__main__':
 
     OUTPUT_DIR = Path('/data/cmpe249-fa22/Waymo132')
 
+    folders = ["training_0000","training_0001", "training_0002","training_0003","training_0004","training_0005","training_0006","training_0007","training_0008","training_0009" \
+                   "training_0010","training_0011", "training_0012","training_0013","training_0014","training_0015","training_0016","training_0017","training_0018","training_0019" \
+                    "training_0020","training_0021", "training_0022","training_0023","training_0024","training_0025","training_0026","training_0027","training_0028","training_0029" \
+                        "training_0030","training_0031"]
 
     if args.func == 'create_waymo_infos':
         try:
@@ -931,17 +935,16 @@ if __name__ == '__main__':
         )
     elif args.func == 'mygeninfo':
         #folders = ["training_0000"]
-        folders = ["training_0000","training_0001", "training_0002","training_0003","training_0004","training_0005","training_0006","training_0007","training_0008","training_0009"]
+        #folders = ["training_0000","training_0001", "training_0002","training_0003","training_0004","training_0005","training_0006","training_0007","training_0008","training_0009"]
         root_path="/data/cmpe249-fa22/Waymo132"
         data_files = [path for x in folders for path in glob(os.path.join(root_path, x, "*.tfrecord"))]
         print("totoal number of files:", len(data_files))
         #create_trainvaltestsplitImageSets2(data_files, OUTPUT_DIR)
-        myget_infos(data_files, OUTPUT_DIR, processed_data_tag='train0to9')
+        myget_infos(data_files, OUTPUT_DIR, processed_data_tag=args.processed_data_tag)
     elif args.func == 'mycreateImageSet':
-        folders = ["training_0000","training_0001", "training_0002","training_0003","training_0004","training_0005","training_0006","training_0007","training_0008","training_0009"]
         root_path="/data/cmpe249-fa22/Waymo132"
         data_files = [path for x in folders for path in glob(os.path.join(root_path, x, "*.tfrecord"))]
-        print("totoal number of files:", len(data_files))#248
+        print("totoal number of files:", len(data_files))#248, 648 for all folders
         create_trainvaltestsplitImageSets2(data_files, OUTPUT_DIR)
     elif args.func == 'mygengtdb':
         try:
@@ -949,13 +952,13 @@ if __name__ == '__main__':
         except:
             yaml_config = yaml.safe_load(open(args.cfg_file))
         dataset_cfg = EasyDict(yaml_config)
-        dataset_cfg.PROCESSED_DATA_TAG = 'train0to9'
+        dataset_cfg.PROCESSED_DATA_TAG = args.processed_data_tag
         create_waymo_gt_database(
             dataset_cfg=dataset_cfg,
             class_names=['Vehicle', 'Pedestrian', 'Cyclist'],
             data_path=OUTPUT_DIR, #ROOT_DIR / 'data' / 'waymo',
             save_path=OUTPUT_DIR, #ROOT_DIR / 'data' / 'waymo',
-            processed_data_tag='train0to9',
+            processed_data_tag=args.processed_data_tag,
             use_parallel=args.use_parallel, 
             crop_gt_with_tail=not args.wo_crop_gt_with_tail
         )

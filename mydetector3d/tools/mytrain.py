@@ -70,10 +70,10 @@ def parse_config():
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', help='specify the config for training')
 
     parser.add_argument('--batch_size', type=int, default=8, required=False, help='batch size for training')
-    parser.add_argument('--epochs', type=int, default=128, required=False, help='number of epochs to train for')
+    parser.add_argument('--epochs', type=int, default=256, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0507', help='extra tag for this experiment')
-    parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
+    parser.add_argument('--extra_tag', type=str, default='0508', help='extra tag for this experiment')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth', help='checkpoint to start from')
     parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/Mymodels', help='output folder path')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')
     parser.add_argument('--launcher', choices=['none', 'pytorch', 'slurm'], default='none')
