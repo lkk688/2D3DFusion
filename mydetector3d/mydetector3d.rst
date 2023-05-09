@@ -152,8 +152,29 @@ In ** mygengtdb ** function->create_waymo_gt_database:
 
       * created '%s_gt_database_%s_sampled_%d' folder under the root
 
+Prepare all dataset
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: console
+
+ (mycondapy39) [010796032@cs001 waymo]$ python waymo_dataset.py --func 'mycreateImageSet'
+ Total files: 648
+ Train size: (518, 1)
+ Val size: (130, 1)
+ Done in /data/cmpe249-fa22/Waymo132/ImageSets/trainval.txt
+ Done in /data/cmpe249-fa22/Waymo132/ImageSets/train.txt
+ Done in /data/cmpe249-fa22/Waymo132/ImageSets/val.txt
+ (mycondapy39) [010796032@cs001 waymo]$ python waymo_dataset.py --func 'mygeninfo'
+ totoal number of files: 648
+ (mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/datasets/waymo/waymo_dataset.py --func 'mygengtdb'
+  Total samples for Waymo dataset: 6485
+  ---------------Start create groundtruth database for data augmentation---------------
+  2023-05-08 18:06:49,870   INFO  Loading Waymo dataset
+  2023-05-08 18:07:23,908   INFO  Total skipped info 0
+  2023-05-08 18:07:23,908   INFO  Total samples for Waymo dataset: 25867
+
 Initialize the dataset during training
-~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Initialize class DatasetTemplate (in dataset.py), setup three processors specified in "DATA_PROCESSOR" section of the configuration file "mydetector3d/tools/cfgs/dataset_configs/mywaymo_dataset.yaml"
   * point_feature_encoder (based on dataset_cfg.POINT_FEATURE_ENCODING), 
   * data_augmentor (based on dataset_cfg.DATA_AUGMENTOR), 
