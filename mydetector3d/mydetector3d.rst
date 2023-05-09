@@ -172,6 +172,10 @@ Prepare all dataset
   2023-05-08 18:06:49,870   INFO  Loading Waymo dataset
   2023-05-08 18:07:23,908   INFO  Total skipped info 0
   2023-05-08 18:07:23,908   INFO  Total samples for Waymo dataset: 25867
+  Database Vehicle: 244715
+  Database Pedestrian: 231457
+  Database Cyclist: 11475                                                                                                
+  ---------------Data preparation Done---------------
 
 Initialize the dataset during training
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
