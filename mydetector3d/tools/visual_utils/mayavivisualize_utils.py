@@ -244,6 +244,105 @@ def draw_corners3d(corners3d, fig, color=(1, 1, 1), line_width=2, cls=None, tag=
 
     return fig
 
+import matplotlib
+from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import math
+#https://matplotlib.org/stable/gallery/color/named_colors.html
+def plot_colortable(colors, heightlevel, ncols=4):
+
+    cell_width = 212
+    cell_height = 22
+    swatch_width = 48
+    margin = 12
+
+    names = list(colors)
+
+    n = len(names)
+    nrows = math.ceil(n / ncols)
+
+    width = cell_width * 4 + 2 * margin
+    height = cell_height * nrows + 2 * margin
+    dpi = 72
+
+    fig, ax = plt.subplots(figsize=(width / dpi, height / dpi), dpi=dpi)
+    fig.subplots_adjust(margin/width, margin/height,
+                        (width-margin)/width, (height-margin)/height)
+    ax.set_xlim(0, cell_width * 4)
+    ax.set_ylim(cell_height * (nrows-0.5), -cell_height/2.)
+    ax.yaxis.set_visible(False)
+    ax.xaxis.set_visible(False)
+    ax.set_axis_off()
+
+    for i, name in enumerate(names):
+        if i>=len(heightlevel):
+            break
+        row = i % nrows
+        col = i // nrows
+        y = row * cell_height
+
+        swatch_start_x = cell_width * col
+        text_pos_x = cell_width * col + swatch_width + 7
+
+        txtname="height: "+str(heightlevel[i])
+        ax.text(text_pos_x, y, name, fontsize=14,
+                horizontalalignment='left',
+                verticalalignment='center')
+        ax.text(text_pos_x+200, y, txtname, fontsize=14,
+                horizontalalignment='left',
+                verticalalignment='center')
+
+        ax.add_patch(
+            Rectangle(xy=(swatch_start_x, y-9), width=swatch_width,
+                      height=18, facecolor=colors[name], edgecolor='0.7')
+        )
+
+    return fig
+
+def colorlevel(maxlevel, heightlevel):
+    #colors = matplotlib.colors.XKCD_COLORS.values()
+    colors=mcolors.TABLEAU_COLORS
+
+    max_color_num = min(maxlevel, len(heightlevel))
+    plot_colortable(colors, heightlevel, ncols=1)
+
+    color_list = list(colors)[:max_color_num+1]
+    colors_rgba = [matplotlib.colors.to_rgba_array(color) for color in color_list]
+    label_rgba = np.array(colors_rgba)#[obj_labels]
+    label_rgba = label_rgba.squeeze()[:, :3]
+    return label_rgba
+    #label_rgba = label_rgba.squeeze()[:, :3]
+
+def generatecolor(points):
+    heightlevel=[-3,-2,-1,0,1,2,3]
+    colors = colorlevel(7, heightlevel) #(7,3)
+    heightarray=points[:,2]
+    minheight = min(heightarray) #-4.29
+    sortedpoint = np.sort(heightarray, axis=0)
+    print(minheight)
+
+    colordata=np.ones((points.shape[0], 3)) # range [0, 1]
+    for i in range(points.shape[0]):
+        #if points.shape[1]==3: #using height as color
+        if points[i,2]<heightlevel[0]:
+            colordata[i,:] = colors[0,:]
+        elif points[i,2]>=heightlevel[0] and points[i,2]<heightlevel[1]:
+            colordata[i,:] = colors[1,:]
+        elif points[i,2]>=heightlevel[1] and points[i,2]<heightlevel[2]:
+            colordata[i,:] = colors[2,:]
+        elif points[i,2]>heightlevel[2] and points[i,2]<heightlevel[3]:
+            colordata[i,:] = colors[3,:]
+        elif points[i,2]>heightlevel[3] and points[i,2]<heightlevel[4]:
+            colordata[i,:] = colors[4,:]
+        elif points[i,2]>heightlevel[4] and points[i,2]<heightlevel[5]:
+            colordata[i,:] = colors[5,:]
+        elif points[i,2]>=heightlevel[4]:
+            colordata[i,:] = colors[6,:]
+            #colordata[i,0]=min(points[i,2],1)
+        # elif points.shape[1]==4: #using intensity as color
+        #     colordata[i,0]=min(points[i,3],1)
+    return colordata
 
 #from Kitti.viz_util.py
 def draw_lidar(
@@ -290,12 +389,13 @@ def draw_lidar(
         minintensity=min(intensities)
         color=np.sqrt(intensities)*10#(intensities-minintensity)
 
+    color = generatecolor(pc)
     mlab.points3d(
         pc[:, 0],
         pc[:, 1],
         pc[:, 2],
-        color,
-        color=pts_color,
+        color[:,0],
+        #color=pts_color,
         mode=pts_mode,
         colormap="gnuplot",
         scale_factor=pts_scale,

@@ -61,7 +61,8 @@ class DemoDataset(DatasetTemplate):
     def __getitem__(self, index):
         if self.ext == '.bin':
             points = np.fromfile(
-                self.sample_file_list[index], dtype=np.float32).reshape(-1, 4)
+                self.sample_file_list[index], dtype=np.float32)
+            points = points.reshape(-1, 4)
         elif self.ext == '.npy':
             points = np.load(self.sample_file_list[index])
         else:
@@ -82,8 +83,8 @@ def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymokitti_models/second.yaml',
                         help='specify the config for demo')
-    parser.add_argument('--data_path', type=str, default='data/waymokittisample/velodyne/',
-                        help='specify the point cloud data file or directory')
+    parser.add_argument('--data_path', type=str, default='/home/lkk/Developer/data/001766.bin',
+                        help='specify the point cloud data file or directory') #data/waymokittisample/velodyne/
     parser.add_argument('--ckpt', type=str, default='/home/lkk/Developer/data/waymo_second_epoch128.pth',
                         help='specify the pretrained model') #waymokitti_second_epoch128
     parser.add_argument('--ext', type=str, default='.bin',
