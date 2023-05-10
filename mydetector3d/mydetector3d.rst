@@ -15,7 +15,7 @@ These three models are trained based on ** Waymo ** dataset (Waymo132/train0to9)
      * evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch128'
 
 Models are trained based on the complete Waymo dataset (Waymo132/trainall) in HPC2
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0508/ckpt/checkpoint_epoch_256.pth' continue training from 129-256 based on ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'. 
+* cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0508/ckpt/checkpoint_epoch_256.pth' continue training from 129-256 based on ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'. 
     * Evaluation result is saved to /data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch256/txtresults.
 
 .. code-block:: console
@@ -37,7 +37,7 @@ Models are trained based on the complete Waymo dataset (Waymo132/trainall) in HP
    aos  AP:51.74, 51.74, 51.74
  
  
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0509/ckpt/checkpoint_epoch_128.pth', trained from 0. 
+* cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0509/ckpt/checkpoint_epoch_128.pth', trained from 0. 
     * Evaluation result is saved to /data/cmpe249-fa22/Mymodels/eval/waymo_models_myvoxelnext_epoch128/txtresults
 
 .. code-block:: console
