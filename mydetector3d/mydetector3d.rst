@@ -14,8 +14,8 @@ These three models are trained based on ** Waymo ** dataset (Waymo132/train0to9)
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'
      * evaluation result saved in '/data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch128'
 
-One model are trained based on the complete Waymo dataset (Waymo132/trainall) in HPC2
-  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0508/ckpt/checkpoint_epoch_256.pth' continue training from 129-256 based on ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'. Result is saved to /data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch256/txtresults.
+Models are trained based on the complete Waymo dataset (Waymo132/trainall) in HPC2
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/my3dmodel.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0508/ckpt/checkpoint_epoch_256.pth' continue training from 129-256 based on ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/my3dmodel/0507/ckpt/checkpoint_epoch_128.pth'. Evaluation result is saved to /data/cmpe249-fa22/Mymodels/eval/waymo_models_my3dmodel_epoch256/txtresults.
   Car AP@0.70, 0.70, 0.70:
    bbox AP:91.7851, 91.7851, 91.7851
    bev  AP:68.3034, 68.3034, 68.3034
@@ -31,6 +31,22 @@ One model are trained based on the complete Waymo dataset (Waymo132/trainall) in
    bev  AP:51.8248, 51.8248, 51.8248
    3d   AP:48.8936, 48.8936, 48.8936
    aos  AP:51.74, 51.74, 51.74
+  * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0509/ckpt/checkpoint_epoch_128.pth', trained from 0. Evaluation result is saved to /data/cmpe249-fa22/Mymodels/eval/waymo_models_myvoxelnext_epoch128/txtresults
+  Car AP@0.70, 0.70, 0.70:
+  bbox AP:96.9390, 96.9390, 96.9390
+  bev  AP:71.0638, 71.0638, 71.0638
+  3d   AP:57.9034, 57.9034, 57.9034
+  aos  AP:57.86, 57.86, 57.86
+  Pedestrian AP@0.50, 0.50, 0.50:
+  bbox AP:93.3127, 93.3127, 93.3127
+  bev  AP:67.9591, 67.9591, 67.9591
+  3d   AP:61.6305, 61.6305, 61.6305
+  aos  AP:52.90, 52.90, 52.90
+  Cyclist AP@0.50, 0.50, 0.50:
+  bbox AP:80.0512, 80.0512, 80.0512
+  bev  AP:70.7396, 70.7396, 70.7396
+  3d   AP:69.7192, 69.7192, 69.7192
+  aos  AP:67.86, 67.86, 67.86
 
 New models are trained based on our converted ** WaymoKitti** dataset in HPC2, the model save path is '/data/cmpe249-fa22/Mymodels/waymokitti_models/'
   * cfg_file='mydetector3d/tools/cfgs/waymokitti_models/pointpillar.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymokitti_models/pointpillar/0504/ckpt/checkpoint_epoch_128.pth'
