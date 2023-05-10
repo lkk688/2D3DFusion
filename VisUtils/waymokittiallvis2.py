@@ -161,14 +161,17 @@ def pltlidar_with3dbox(pc_velo, object3dlabels, calib, point_cloud_range):
     for obj in object3dlabels:
         if obj.type == "DontCare":
             continue
-        print(obj.type)
+        #print(obj.type)
         # Draw 3d bounding box
         box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 
         box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d, ref_cameraid) #(n,8,3)
         #print("box3d_pts_3d_velo:", box3d_pts_3d_velo)
         #draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=color)
-        colorlabel=INSTANCE3D_Color[obj.type]
-        draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type) #(n,8,3)
+        if obj.type in INSTANCE3D_Color.keys():
+            colorlabel=INSTANCE3D_Color[obj.type]
+            draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig, color=colorlabel, label=obj.type) #(n,8,3)
+        else:
+            print("Object not in Kitti:", obj.type)
 
     mlab.show()
 
@@ -198,23 +201,26 @@ def pltshow_image_with_boxes(cameraid, img, objects, layout, cmap=None):
             continue
         box=obj.box2d
         objectclass=obj.type
-        colorlabel=INSTANCE_Color[objectclass]
-        [xmin, ymin, xmax, ymax]=box
-        width=xmax-xmin #box.length
-        height=ymax-ymin #box.width
-        if (height>0 and width>0):
-            print(box)
-#             xmin=label.box.center_x - 0.5 * label.box.length
-#             ymin=label.box.center_y - 0.5 * label.box.width
-            # Draw the object bounding box.
-            ax.add_patch(patches.Rectangle(
-                xy=(xmin,ymin),
-                width=width, #label.box.length,
-                height=height, #label.box.width,
-                linewidth=1,
-                edgecolor=colorlabel,
-                facecolor='none'))
-            ax.text(xmin, ymin, objectclass, color=colorlabel, fontsize=8)
+        if objectclass in INSTANCE_Color.keys():
+            colorlabel=INSTANCE_Color[objectclass]
+            [xmin, ymin, xmax, ymax]=box
+            width=xmax-xmin #box.length
+            height=ymax-ymin #box.width
+            if (height>0 and width>0):
+                #print(box)
+    #             xmin=label.box.center_x - 0.5 * label.box.length
+    #             ymin=label.box.center_y - 0.5 * label.box.width
+                # Draw the object bounding box.
+                ax.add_patch(patches.Rectangle(
+                    xy=(xmin,ymin),
+                    width=width, #label.box.length,
+                    height=height, #label.box.width,
+                    linewidth=1,
+                    edgecolor=colorlabel,
+                    facecolor='none'))
+                ax.text(xmin, ymin, objectclass, color=colorlabel, fontsize=8)
+        else:
+            print("Object not in kitti:", objectclass)
     # Show the camera image.
     plt.grid(False)
     plt.axis('on')
@@ -247,14 +253,17 @@ def pltshow_image_with_3Dboxes(cameraid, img, objects, calib, layout, cmap=None)
             if obj.type == "DontCare" or (obj is None):
                 continue
             box3d_pts_3d = compute_box_3d(obj) #3d box coordinate=>get 8 points in camera rect, 8x3
-            print(box3d_pts_3d)
+            #print(box3d_pts_3d)
             if np.any(box3d_pts_3d[2, :] < z_front_min): #in Kitti, z axis is to the front, if z<0.1 means objs in back of camera
                 continue
             box3d_pts_2d, _ = calib.project_cam3d_to_image(box3d_pts_3d, cameraid) #return (8,2) array in left image coord.
             #print("obj:", box3d_pts_2d)
             if box3d_pts_2d is not None:
-                colorlabel=INSTANCE3D_ColorCV2[obj.type]
-                img2 = draw_projected_box3d(img2, box3d_pts_2d, color=colorlabel)
+                if obj.type in INSTANCE3D_ColorCV2.keys():
+                    colorlabel=INSTANCE3D_ColorCV2[obj.type]
+                    img2 = draw_projected_box3d(img2, box3d_pts_2d, color=colorlabel)
+                else:
+                    print("Object not in kitti:", obj.type)
     else:
         ref_cameraid=0
         for obj in objects:
@@ -278,9 +287,11 @@ def pltshow_image_with_3Dboxes(cameraid, img, objects, calib, layout, cmap=None)
     plt.axis('on')
 
 
-def load_image(img_filenames, showfig=True):
+def load_image(img_filenames, jpgfile=False):
     imgs=[]
     for img_filename in img_filenames:
+        if jpgfile==True:
+            img_filename=img_filename.replace('.png', '.jpg')
         img = cv2.imread(img_filename)
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         imgs.append(rgb)
@@ -288,7 +299,7 @@ def load_image(img_filenames, showfig=True):
     #return cv2.imread(img_filename)
 
 def load_velo_scan(velo_filename, dtype=np.float32, n_vec=4, filterpoints=False, point_cloud_range=[0, -15, -5, 90, 15, 4]):
-    scan = np.fromfile(velo_filename, dtype=dtype)
+    scan = np.fromfile(velo_filename, dtype=dtype) #(254452,)
     scan = scan.reshape((-1, n_vec))
     xpoints=scan[:,0]
     ypoints=scan[:,1]
@@ -392,16 +403,19 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--root_path", default='./data/kitti', help="root folder"
+        "--root_path", default='/home/lkk/Developer/data/v2xvehiclekitti', help="root folder"
     )#'./data/waymokittisample'
     parser.add_argument(
-        "--index", default="10", help="file index"
+        "--index", default="1766", help="file index"
     )
     parser.add_argument(
         "--dataset", default="kitti", help="dataset name" 
     )#waymokitti
     parser.add_argument(
         "--camera_count", default=1, help="Number of cameras used"
+    )
+    parser.add_argument(
+        "--jpgfile", default=True, help="Number of cameras used"
     )
     args = parser.parse_args()
 
@@ -423,14 +437,14 @@ if __name__ == "__main__":
 
     #load Lidar points
     dtype=np.float32
-    point_cloud_range=[-100, -30, -5, 100, 30, 5]#[0, -15, -5, 90, 15, 4] #0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
+    point_cloud_range=[-100, -60, -8, 100, 60, 8]#[0, -15, -5, 90, 15, 4] #0:xmin, 1: ymin, 2: zmin, 3: xmax, 4: ymax, 5: zmax
     pc_velo=load_velo_scan(lidar_filename, dtype=np.float32, n_vec=4, filterpoints=True, point_cloud_range=point_cloud_range)
     ##Each point encodes XYZ + reflectance in Velodyne coordinate: x = forward, y = left, z = up
 
     #calib=WaymoCalibration(calibration_file)
     calib=getcalibration(args.dataset, calibration_file)
 
-    images=load_image(image_files)
+    images=load_image(image_files, jpgfile=args.jpgfile)
     objectlabels=read_multi_label(labels_files)
     plt_multiimages(images, objectlabels, args.dataset)
 

@@ -220,7 +220,7 @@ if __name__ == "__main__":
     path_v = source_root+'vehicle-side/velodyne/'
     path_i = source_root+'infrastructure-side/velodyne/'
 
-    binpoints=read_pointsbin("/home/lkk/Developer/data/001766.bin")
+    binpoints=read_pointsbin("/home/lkk/Developer/data/v2xvehiclekitti/velodyne/001766.bin")#converted to kitti
     draw_pcd(binpoints)
 
     vehicleLidar_path=path_v+'015344.pcd'

@@ -322,11 +322,32 @@ def rewrite_txt(path):
     f_new.write(new_data)
     f_new.close()
 
-
 def rewrite_label(path_file):
     path_list = get_files_path(path_file, ".txt")
     for path in path_list:
         rewrite_txt(path)
+
+def replaceclass_txt(path, find_strs, replace_str):
+    with open(path, "r+") as f:
+        data = f.readlines()
+        new_data = ""
+        for line in data:
+            for find_str in find_strs:
+                if find_str in line:
+                    line = line.replace(find_str, replace_str)
+            new_data = new_data + line
+    os.remove(path)
+    f_new = open(path, "w")
+    f_new.write(new_data)
+    f_new.close()
+
+def rewrite_label2(path_file):
+    path_list = get_files_path(path_file, ".txt")
+    find_strs = ["Truck","Van","Bus","Car"]
+    replace_str = "Car"
+    for path in path_list:
+        replaceclass_txt(path, find_strs, replace_str)
+        #rewrite_txt(path)
 
 
 def label_filter(label_dir):
@@ -388,12 +409,12 @@ def step1(args, source_root, target_root, sourcelidarfolder):
     print("================ Start to Generate Label ================")
     temp_root = args.temp_root #'/data/cmpe249-fa22/DAIR-C/tmp_file
     label_type = args.label_type #lidar
-    no_classmerge = args.no_classmerge #False
+    #no_classmerge = args.no_classmerge #False
     os.system("mkdir -p %s" % temp_root)
     os.system("rm -rf %s/*" % temp_root)
     gen_lidar2cam(source_root, temp_root, label_type=label_type) #get label json
 
-def step2_kittilabel(temp_root,label_type,target_root):
+def step2_kittilabel(temp_root,label_type,target_root, no_classmerge):
     json_root = os.path.join(temp_root, "label", label_type) #/data/cmpe249-fa22/DAIR-C/tmp_file/label/lidar
     kitti_label_root = os.path.join(target_root, "training/label_2") #/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/training/label_2
     json2kitti(json_root, kitti_label_root)
@@ -417,7 +438,7 @@ if __name__ == "__main__":
     step1(args, source_root, target_root, args.sourcelidarfolder)
 
     #Convert json label to kitti label txt file
-    step2_kittilabel(temp_root,label_type,target_root)
+    step2_kittilabel(temp_root,label_type,target_root,no_classmerge)
 
     print("================ Start to Generate Calibration Files ================")
     sensor_view = args.sensor_view
