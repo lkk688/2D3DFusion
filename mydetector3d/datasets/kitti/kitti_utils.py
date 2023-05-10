@@ -64,3 +64,39 @@ def calib_to_matricies(calib):
     V2R = R0 @ V2C
     P2 = calib.P2
     return V2R, P2
+
+import pandas as pd
+import os
+from sklearn.model_selection import train_test_split
+
+def create_trainvaltestsplitfile(dataset_dir, output_dir, imagefoldername='image_2'): #waymo is image_0
+    trainingdir = os.path.join(dataset_dir, imagefoldername)
+    ImageSetdir = os.path.join(output_dir, 'ImageSets')
+    if not os.path.exists(ImageSetdir):
+        os.makedirs(ImageSetdir)
+
+    images = os.listdir(trainingdir)
+    # totalimages=len([img for img in images])
+    # print("Total images:", totalimages)
+    dataset = []
+    for img in images:
+        dataset.append(img[:-4])#remove .png
+    print("Total images:", len(dataset))
+    df = pd.DataFrame(dataset, columns=['index'])
+    X_train, X_val = train_test_split(df, train_size=0.8, test_size=0.2, random_state=42)
+    print("Train size:", X_train.shape)
+    print("Val size:", X_val.shape)
+    write_to_file(os.path.join(ImageSetdir, 'trainval.txt'), df['index'])
+    write_to_file(os.path.join(ImageSetdir, 'train.txt'), X_train['index'])
+    write_to_file(os.path.join(ImageSetdir, 'val.txt'), X_val['index'])
+
+def write_to_file(path, data): 
+    file = open(path, 'w') 
+    for row in data: 
+        #print(idx)
+        #file.write(str(idx).zfill(6))
+        file.write(row)
+        file.write('\n')
+
+    file.close()
+    print('Done in ' + path)
