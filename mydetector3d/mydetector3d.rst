@@ -35,7 +35,8 @@ Models are trained based on the complete Waymo dataset (Waymo132/trainall) in HP
    bev  AP:51.8248, 51.8248, 51.8248
    3d   AP:48.8936, 48.8936, 48.8936
    aos  AP:51.74, 51.74, 51.74
-   
+ 
+ 
   * cfg_file='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', ckpt file in '/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0509/ckpt/checkpoint_epoch_128.pth', trained from 0. 
     * Evaluation result is saved to /data/cmpe249-fa22/Mymodels/eval/waymo_models_myvoxelnext_epoch128/txtresults
 
