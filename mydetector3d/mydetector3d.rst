@@ -106,7 +106,26 @@ Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', cr
  info['calib'] = calib_info
  info['annos'] = annotations
 
-**annotations** dict contains: ['name'], ['truncated'], ['occluded'], ['alpha'], ['bbox'], ['dimensions']: lhw(camera) format, ['location'], ['rotation_y'], ['score'], ['difficulty'], among them
+Get all labels in obj_list via **self.get_label(sample_idx)**, where each obj is
+
+.. code-block:: console
+
+  return object3d_kitti.get_objects_from_label(label_file)
+                          |-------[Object3d(line) for line in lines]
+                                    |-----in mydetector3d/utils/object3d_kitti.py
+
+**annotations** is created from the obj_list, and each dict contains: ['name'], ['truncated'], ['occluded'], ['alpha'], ['bbox'], ['dimensions']: lhw(camera) format, ['location'], ['rotation_y'], ['score'], ['difficulty']
+  * 'name' is class name string from obj.cls_type
+  * 'truncated' (0 non-truncated ~ 1 truncated), 'occluded' (0 fully visible,1,2,3 unknown), 'alpha' (observation angle -pi~pi) are float from original kitti label txt
+    * alpha considers the vector from the camera center to the object center
+    * alpha is zero when this object is located along the Z-axis (front) of the camera
+  * 'bbox' is from obj.box2d label[4-7]: left, top, right, bottom image pixel coordinate (int)
+  * 'dimensions' is 3d object size in meters [obj.l, obj.h, obj.w]
+    * obj.l is from label[10] length
+    * obj.h is from label[9] width
+    * obj.w is from label[8] height
+  * 'location' is from obj.loc (label[11-13]) xyz in camera coordinate
+  * 'rotation_y' from label[14] Rotation ry around Y-axis (to the ground) in camera coordinates [-pi..pi]
 
 .. code-block:: console
 
