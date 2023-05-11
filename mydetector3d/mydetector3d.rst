@@ -126,6 +126,7 @@ Get all labels in obj_list via **self.get_label(sample_idx)**, where each obj is
     * obj.w is from label[8] height
   * 'location' is from obj.loc (label[11-13]) xyz in camera coordinate
   * 'rotation_y' from label[14] Rotation ry around Y-axis (to the ground) in camera coordinates [-pi..pi]
+  * 'difficulty' is calculated by **get_kitti_obj_level** based on the box2d height (pixel size>40 means Easy)
 
 .. code-block:: console
 
