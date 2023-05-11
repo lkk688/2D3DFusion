@@ -152,7 +152,7 @@ ImageSets2  waymo_dbinfos_train.pkl  waymo_infos_train.pkl  waymo_infos_val.pkl
 
 Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://github.com/lkk688/WaymoObjectDetection', run the following code 
 
-  .. code-block:: console
+.. code-block:: console
   
   [DatasetTools]$ python Waymo2KittiAsync.py
   [DatasetTools]$ python mycreatewaymoinfo.py --createsplitfile_only
@@ -203,8 +203,21 @@ In 'mydetector3d/datasets/waymo/waymo_dataset.py', specify the '--func' in main 
 In ** mygeninfo ** function:
     #. call waymo_utils.process_single_sequence for each tfrecord sequence file, all returned infos dict list are saved in train0to9_infos_train.pkl under root folder '/data/cmpe249-fa22/Waymo132/'
     #. waymo_utils.process_single_sequence created one folder for each sequence under the folder '/data/cmpe249-fa22/Waymo132/train0to9'. One pkl file contains list of all sequence info is saved, including annotations (via generate_labels). 
-      * generate_labels in mydetector3d/datasets/waymo/waymo_utils.py utilize waymo frame.laser_labels for box annatation, loc = [box.center_x, box.center_y, box.center_z], dimensions.append([box.length, box.width, box.height])
-      * save_lidar_points save each frame's lidar data as one npy file (frame index as the name) under the sequence folder, 3d points in vehicle frame.
+      * generate_labels in mydetector3d/datasets/waymo/waymo_utils.py utilize waymo frame.laser_labels for box annatation, loc = [box.center_x, box.center_y, box.center_z], dimensions.append([box.length, box.width, box.height]) the same to the unified coordinate of OpenPCDet
+      * **annotations** contains 'heading_angles', 'speed_global', 'accel_global' are not in Kitti, Kitti's 'alpha', 'rotation_y' are not in here
+      * annotations[gt_boxes_lidar] is calcuated from
+
+.. code-block:: console
+  
+     if annotations['name'].__len__() > 0:
+        #get speed
+        gt_boxes_lidar = np.concatenate([
+            annotations['location'], annotations['dimensions'], annotations['heading_angles'][..., np.newaxis], speed], axis=1)
+    else:
+        gt_boxes_lidar = np.zeros((0, 9))
+    annotations['gt_boxes_lidar'] = gt_boxes_lidar
+    
+save_lidar_points save each frame's lidar data as one npy file (frame index as the name) under the sequence folder, 3d points in vehicle frame.
     
 In ** mygengtdb ** function->create_waymo_gt_database:
     #. call dataset.create_groundtruth_database (in waymo_dataset.py) for 'train' split
