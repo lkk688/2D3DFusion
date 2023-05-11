@@ -71,6 +71,8 @@ The difference between rotation_y (Rotation ry around Y-axis in camera coordinat
 * For example, a car which is facing along the X-axis of the camera coordinate system corresponds to rotation_y=0, no matter where it is located in the X/Z plane (bird's eye view)
 * alpha is zero when this object is located along the Z-axis (front) of the camera. 
 
+![image](https://github.com/lkk688/3DDepth/assets/6676586/b04e6e01-c5be-49ab-9c15-8336cb1e6ff9)
+
 
 ## Calibration
 The "calib" folder contains all calibration parameters as shown in the following image. All calibration files are similar, except the first 000000.txt file. The calibration parameters are stored in row-major order. It contains the 3x4 projection matrix parameters which describe the mapping of 3D points in the world to 2D points in an image.
