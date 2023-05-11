@@ -128,6 +128,8 @@ Get all labels in obj_list via **self.get_label(sample_idx)**, where each obj is
   * 'rotation_y' from label[14] Rotation ry around Y-axis (to the ground) in camera coordinates [-pi..pi]
   * 'difficulty' is calculated by **get_kitti_obj_level** based on the box2d height (pixel size>40 means Easy)
 
+These **annotations**  values are further processed to convert the loc from camera rect coordinate to Lidar coordinate, and move the Z height of the loc_lidar (shift objects' center coordinate (original 0) from box bottom to the center)
+
 .. code-block:: console
 
  loc_lidar = calib.rect_to_lidar(loc)
@@ -136,6 +138,7 @@ Get all labels in obj_list via **self.get_label(sample_idx)**, where each obj is
  gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
  annotations['gt_boxes_lidar'] = gt_boxes_lidar
 
+Where "-(np.pi / 2 + rots" is convert kitti camera rot angle definition (camera x-axis, clockwise is positive) to pcdet lidar rot angle definition (Lidar X-axis, clockwise is negative).
 
 My Waymokitti Dataset Process
 -----------------------------
