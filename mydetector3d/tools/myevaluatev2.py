@@ -289,15 +289,15 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
 
             if args.savebatchidx is not None and i==args.savebatchidx:
                 #save the current batch data for later evaluation
-                batch_dict_save=load_data_to_device(batch_dict,'cpu')
-                pred_dicts_save=load_data_to_device(pred_dicts,'cpu')
+                load_data_to_device(batch_dict,'cpu')
+                load_data_to_device(pred_dicts,'cpu')
                 save_dict = {}
                 save_dict['idx']=i
                 save_dict['ckpt']=args.ckpt
                 save_dict['cfg_file']=args.cfg_file
                 save_dict['datasetname']=args.dataset_cfg_file
-                save_dict['batch_dict']=batch_dict_save #batch_dict#.numpy()
-                save_dict['pred_dicts']=pred_dicts_save #pred_dicts#.numpy()
+                save_dict['batch_dict']=batch_dict #batch_dict#.numpy()
+                save_dict['pred_dicts']=pred_dicts #pred_dicts#.numpy()
                 save_dict['annos']=annos#.numpy()
                 save_dict['infer_time']=infer_time_meter.val
                 resultfile=args.savename + '_frame_%s.pkl' % str(i)
@@ -336,6 +336,7 @@ def runevaluation(dataset, det_annos, class_names, final_output_dir, kittiformat
     from mydetector3d.datasets.kitti.kitti_object_eval_python import eval as kitti_eval
     from mydetector3d.datasets.kitti.kitti_utils import transform_annotations_to_kitti_format
     eval_det_annos = copy.deepcopy(det_annos) #'boxes_lidar'
+    eval_gt_annos = [copy.deepcopy(info['annos']) for info in datainfo]
 
     if hasattr(dataset, "kitti_infos"):
         datainfo=dataset.kitti_infos
@@ -355,7 +356,7 @@ def runevaluation(dataset, det_annos, class_names, final_output_dir, kittiformat
         #         newclassname = map_name_to_kitti[classname]
         #         newclassnames.append(newclassname)
         class_names = [map_name_to_kitti[x] for x in class_names]
-        eval_gt_annos = [copy.deepcopy(info['annos']) for info in datainfo]
+        
 
         transform_annotations_to_kitti_format(eval_det_annos, map_name_to_kitti=map_name_to_kitti)
         transform_annotations_to_kitti_format(
