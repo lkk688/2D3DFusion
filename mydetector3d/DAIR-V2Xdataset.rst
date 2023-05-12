@@ -117,4 +117,19 @@ Run dairkitti_dataset.py to generate the split files, infos, and gt_database.
   gt_database  kitti_dbinfos_train.pkl  kitti_infos_train.pkl     kitti_infos_val.pkl  training
   ImageSets    kitti_infos_test.pkl     kitti_infos_trainval.pkl  testing
 
+In the **__getitem__** of dairkitti_dataset.py, gt_boxes_lidar is from 'location', 'dimensions', and 'rotation_y'
 
+.. code-block:: console
+
+  loc, dims, rots = annos['location'], annos['dimensions'], annos['rotation_y']
+  gt_names = annos['name']
+  #create label [n,7] in camera coordinate boxes3d_camera: (N, 7) [x, y, z, l, h, w, r] in rect camera coords
+  gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
+  gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
+
+If this frame has no object, set gt_boxes_lidar empty:
+
+.. code-block:: console
+
+  if len(gt_names)==0:
+       gt_boxes_lidar = np.zeros((0, 7))
