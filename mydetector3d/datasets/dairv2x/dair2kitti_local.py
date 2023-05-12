@@ -55,7 +55,7 @@ if __name__ == "__main__":
     no_classmerge = args.no_classmerge #False
 
     #Get Lidar bin file and label.json
-    #step1(args, source_root, target_root, args.sourcelidarfolder)
+    step1(args, source_root, target_root, args.sourcelidarfolder)
 
     #Convert json label to kitti label txt file
     step2_kittilabel(temp_root,label_type,target_root,no_classmerge)
