@@ -1,6 +1,14 @@
 import numpy as np
 from ...utils import box_utils
 
+def filter_otherobjects(annos, map_name_to_kitti):
+    newannots=[]
+    for anno in annos:
+        anno_size=anno['name'].shape[0]
+        for k in range(anno_size):
+            currentname=anno['name'][k]
+            if currentname in map_name_to_kitti.keys():
+                newannots.append(anno)
 
 def transform_annotations_to_kitti_format(annos, map_name_to_kitti=None, info_with_fakelidar=False):
     """
@@ -18,7 +26,9 @@ def transform_annotations_to_kitti_format(annos, map_name_to_kitti=None, info_wi
             anno.pop('gt_names')
 
         for k in range(anno['name'].shape[0]):
-            anno['name'][k] = map_name_to_kitti[anno['name'][k]]
+            currentname=anno['name'][k]
+            if currentname in map_name_to_kitti.keys():
+                anno['name'][k] = map_name_to_kitti[currentname]
 
         anno['bbox'] = np.zeros((len(anno['name']), 4))
         anno['bbox'][:, 2:4] = 50  # [0, 0, 50, 50]

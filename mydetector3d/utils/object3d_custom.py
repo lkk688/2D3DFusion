@@ -1,7 +1,7 @@
 #https://github.com/open-mmlab/OpenPCDet/blob/master/pcdet/utils/object3d_custom.py
 import numpy as np
 
-
+#called from outside
 def get_objects_from_label(label_file):
     with open(label_file, 'r') as f:
         lines = f.readlines()
@@ -36,22 +36,38 @@ class Object3d(object):
         self.level_str = None
         self.level = self.get_custom_obj_level()
 
+    # def get_custom_obj_level(self):
+    #     height = float(self.box2d[3]) - float(self.box2d[1]) + 1
+
+    #     if height >= 40 and self.truncation <= 0.15 and self.occlusion <= 0:
+    #         self.level_str = 'Easy'
+    #         return 0  # Easy
+    #     elif height >= 25 and self.truncation <= 0.3 and self.occlusion <= 1:
+    #         self.level_str = 'Moderate'
+    #         return 1  # Moderate
+    #     elif height >= 25 and self.truncation <= 0.5 and self.occlusion <= 2:
+    #         self.level_str = 'Hard'
+    #         return 2  # Hard
+    #     else:
+    #         self.level_str = 'UnKnown'
+    #         return -1
+
     def get_custom_obj_level(self):
         height = float(self.box2d[3]) - float(self.box2d[1]) + 1
 
-        if height >= 40 and self.truncation <= 0.15 and self.occlusion <= 0:
+        if height >= 100:
             self.level_str = 'Easy'
             return 0  # Easy
-        elif height >= 25 and self.truncation <= 0.3 and self.occlusion <= 1:
+        elif height >= 40:
             self.level_str = 'Moderate'
             return 1  # Moderate
-        elif height >= 25 and self.truncation <= 0.5 and self.occlusion <= 2:
+        elif height <= 20:
             self.level_str = 'Hard'
             return 2  # Hard
         else:
             self.level_str = 'UnKnown'
             return -1
-
+        
     def generate_corners3d(self):
         """
         generate corners3d representation for this object

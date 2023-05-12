@@ -59,44 +59,49 @@ __modelall__ = {
 
 from mydetector3d.datasets.kitti.kitti_dataset import KittiDataset
 from mydetector3d.datasets.kitti.waymokitti_simpledataset import WaymoKittiDataset
+from mydetector3d.datasets.kitti.dairkitti_dataset import DairKittiDataset
 from mydetector3d.datasets.waymo.waymo_dataset import WaymoDataset
 from torch.utils.data import DataLoader
 __datasetall__ = {
     'KittiDataset': KittiDataset,
     'WaymoKittiDataset': WaymoKittiDataset,
     'waymokitti_dataset': WaymoKittiDataset,
-    'WaymoDataset': WaymoDataset
+    'WaymoDataset': WaymoDataset,
+    'DairKittiDataset': DairKittiDataset
 }
 
 #newly created
 def load_data_to_device(batch_dict, device):
-    for key, val in batch_dict.items():
-        if not isinstance(val, np.ndarray):
-            continue
-        elif key in ['frame_id', 'metadata', 'calib']:
-            continue
-        # elif key in ['images']:
-        #     batch_dict[key] = kornia.image_to_tensor(val).float().cuda().contiguous()
-        # elif key in ['images']:
-        #     batch_dict[key] = kornia.image_to_tensor(val).float().to(device).contiguous()
-        elif key in ['image_shape']:
-            batch_dict[key] = batch_dict[key] = torch.from_numpy(val).int().to(device) #torch.from_numpy(val).int().cuda()
-        else:
-            batch_dict[key] = torch.from_numpy(val).float().to(device) #torch.from_numpy(val).float().cuda()
-
+    if type(batch_dict) is dict:
+        for key, val in batch_dict.items():
+            if not isinstance(val, np.ndarray):
+                continue
+            elif key in ['frame_id', 'metadata', 'calib']:
+                continue
+            # elif key in ['images']:
+            #     batch_dict[key] = kornia.image_to_tensor(val).float().cuda().contiguous()
+            # elif key in ['images']:
+            #     batch_dict[key] = kornia.image_to_tensor(val).float().to(device).contiguous()
+            elif key in ['image_shape']:
+                batch_dict[key] = batch_dict[key] = torch.from_numpy(val).int().to(device) #torch.from_numpy(val).int().cuda()
+            else:
+                batch_dict[key] = torch.from_numpy(val).float().to(device) #torch.from_numpy(val).float().cuda()
+    # else:
+    #     batch_dict = batch_dict.to(device)
 
 #'/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0502/ckpt/checkpoint_epoch_128.pth'
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/waymo_models/myvoxelnext.yaml', help='specify the model config')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/my3dmodel.yaml', help='specify the model config')
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/waymo_models/myvoxelnext/0509/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/my3dmodel/0511/ckpt/checkpoint_epoch_64.pth', help='checkpoint to evaluate')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
-    parser.add_argument('--gpuid', default=1, type=int, help='GPU id to use.')
+    parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
+    parser.add_argument('--kittiformat', default=True, help='')
     parser.add_argument('--eval_only', default=False, help='') #When detection result is available, set to True and just run the evaluation
     parser.add_argument('--savebatchidx', type=int, default=1, help='Save one batch data to pkl for visualization')
     parser.add_argument('--infer_time', default=True, help='calculate inference latency') #action='store_true' true if specified
@@ -214,7 +219,7 @@ def main():
         det_annos = pickle.load(f)         # load file content as mydict
         f.close()
 
-    result_str, result_dict =runevaluation(dataset, det_annos, class_names, args.eval_output_dir)
+    result_str, result_dict =runevaluation(dataset, det_annos, class_names, args.eval_output_dir, args.kittiformat)
     print(result_str)
     print(result_dict)
 
@@ -284,14 +289,16 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
 
             if args.savebatchidx is not None and i==args.savebatchidx:
                 #save the current batch data for later evaluation
+                batch_dict_save=load_data_to_device(batch_dict,'cpu')
+                pred_dicts_save=load_data_to_device(pred_dicts,'cpu')
                 save_dict = {}
                 save_dict['idx']=i
                 save_dict['ckpt']=args.ckpt
                 save_dict['cfg_file']=args.cfg_file
                 save_dict['datasetname']=args.dataset_cfg_file
-                save_dict['batch_dict']=batch_dict
-                save_dict['pred_dicts']=pred_dicts
-                save_dict['annos']=annos
+                save_dict['batch_dict']=batch_dict_save #batch_dict#.numpy()
+                save_dict['pred_dicts']=pred_dicts_save #pred_dicts#.numpy()
+                save_dict['annos']=annos#.numpy()
                 save_dict['infer_time']=infer_time_meter.val
                 resultfile=args.savename + '_frame_%s.pkl' % str(i)
                 with open(args.output_dir / resultfile, 'wb') as f:
