@@ -181,55 +181,63 @@ class DairKittiDataset(DatasetTemplate):
 
             if has_label:
                 obj_list = self.get_label(sample_idx)
-                if len(obj_list)<0:
-                    print("Object list is empty")
-                    return info
+                num_obj = len(obj_list)
                 annotations = {}
+                if num_obj<=0:
+                    print("Object list is empty")
+                    annotations['bbox'] = np.array([])
+                    annotations['location'] = np.array([])
+                else:
+                    annotations['bbox'] = np.concatenate([obj.box2d.reshape(1, 4) for obj in obj_list], axis=0)
+                    annotations['location'] = np.concatenate([obj.loc.reshape(1, 3) for obj in obj_list], axis=0)
+
                 annotations['name'] = np.array([obj.cls_type for obj in obj_list])
                 annotations['truncated'] = np.array([obj.truncation for obj in obj_list])
                 annotations['occluded'] = np.array([obj.occlusion for obj in obj_list])
                 annotations['alpha'] = np.array([obj.alpha for obj in obj_list])
-                annotations['bbox'] = np.concatenate([obj.box2d.reshape(1, 4) for obj in obj_list], axis=0)
                 annotations['dimensions'] = np.array([[obj.l, obj.h, obj.w] for obj in obj_list])  # lhw(camera) format
-                annotations['location'] = np.concatenate([obj.loc.reshape(1, 3) for obj in obj_list], axis=0)
                 annotations['rotation_y'] = np.array([obj.ry for obj in obj_list])
                 annotations['score'] = np.array([obj.score for obj in obj_list])
                 annotations['difficulty'] = np.array([obj.level for obj in obj_list], np.int32)
 
                 num_objects = len([obj.cls_type for obj in obj_list if obj.cls_type != 'DontCare']) #effective objects (excluding DontCare)
                 num_gt = len(annotations['name']) #total objects
-                index = list(range(num_objects)) + [-1] * (num_gt - num_objects)
-                annotations['index'] = np.array(index, dtype=np.int32)#e.g., index=[0,1,2,3,4,5,-1,-1,-1,-1]
+                if num_objects>0:
+                    index = list(range(num_objects)) + [-1] * (num_gt - num_objects)
+                    annotations['index'] = np.array(index, dtype=np.int32)#e.g., index=[0,1,2,3,4,5,-1,-1,-1,-1]
 
-                #N is effective objects location（N,3）、dimensions（N,3）、rotation_y（N,1）
-                loc = annotations['location'][:num_objects] #get 0:num_objects, DontCare object is always at the end
-                dims = annotations['dimensions'][:num_objects]
-                rots = annotations['rotation_y'][:num_objects]
+                    #N is effective objects location（N,3）、dimensions（N,3）、rotation_y（N,1）
+                    loc = annotations['location'][:num_objects] #get 0:num_objects, DontCare object is always at the end
+                    dims = annotations['dimensions'][:num_objects]
+                    rots = annotations['rotation_y'][:num_objects]
 
-                #Kitti 3D annotation is in camera coordinate, convert it to Lidar coordinate
-                loc_lidar = calib.rect_to_lidar(loc)
-                #dimension 0,1,2 column is l,h,w
-                l, h, w = dims[:, 0:1], dims[:, 1:2], dims[:, 2:3]
+                    #Kitti 3D annotation is in camera coordinate, convert it to Lidar coordinate
+                    loc_lidar = calib.rect_to_lidar(loc)
+                    #dimension 0,1,2 column is l,h,w
+                    l, h, w = dims[:, 0:1], dims[:, 1:2], dims[:, 2:3]
 
-                #shift objects' center coordinate (original 0) from box bottom to the center
-                loc_lidar[:, 2] += h[:, 0] / 2
+                    #shift objects' center coordinate (original 0) from box bottom to the center
+                    loc_lidar[:, 2] += h[:, 0] / 2
 
-                # (N, 7) [x, y, z, dx, dy, dz, heading]
-                # np.newaxis add one dimension in column，rots is (N,)
-                # -(np.pi / 2 + rots[..., np.newaxis]): convert kitti camera rot angle definition to pcdet lidar rot angle definition.
-                #  In kitti，camera坐标系下定义物体朝向与camera的x轴夹角顺时针为正，逆时针为负
-                # 在pcdet中，lidar坐标系下定义物体朝向与lidar的x轴夹角逆时针为正，顺时针为负，所以二者本身就正负相反
-                # pi / 2是坐标系x轴相差的角度(如图所示)
-                # camera:         lidar:
-                # Y                    X
-                # |                    |
-                # |____X         Y_____|     
-                gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
-                annotations['gt_boxes_lidar'] = gt_boxes_lidar
+                    # (N, 7) [x, y, z, dx, dy, dz, heading]
+                    # np.newaxis add one dimension in column，rots is (N,)
+                    # -(np.pi / 2 + rots[..., np.newaxis]): convert kitti camera rot angle definition to pcdet lidar rot angle definition.
+                    #  In kitti，camera坐标系下定义物体朝向与camera的x轴夹角顺时针为正，逆时针为负
+                    # 在pcdet中，lidar坐标系下定义物体朝向与lidar的x轴夹角逆时针为正，顺时针为负，所以二者本身就正负相反
+                    # pi / 2是坐标系x轴相差的角度(如图所示)
+                    # camera:         lidar:
+                    # Y                    X
+                    # |                    |
+                    # |____X         Y_____|     
+                    gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
+                    annotations['gt_boxes_lidar'] = gt_boxes_lidar
+                else:
+                    gt_boxes_lidar = np.zeros((0, 9))
+                    annotations['gt_boxes_lidar'] = gt_boxes_lidar
 
                 info['annos'] = annotations
 
-                if count_inside_pts:
+                if count_inside_pts and num_gt>0:
                     points = self.get_lidar(sample_idx) #get lidar points based on index list
                     calib = self.get_calib(sample_idx)
                     pts_rect = calib.lidar_to_rect(points[:, 0:3]) #convert points from lidar coordinate to camera rect coordinate
@@ -251,6 +259,8 @@ class DairKittiDataset(DatasetTemplate):
                         flag = box_utils.in_hull(pts_fov[:, 0:3], corners_lidar[k])
                         num_points_in_gt[k] = flag.sum() #calculate the points inside the box
                     annotations['num_points_in_gt'] = num_points_in_gt
+                elif count_inside_pts and num_gt==0:
+                    annotations['num_points_in_gt'] =  np.array([]) #np.zeros()
 
             return info
 
@@ -286,9 +296,10 @@ class DairKittiDataset(DatasetTemplate):
             gt_boxes = annos['gt_boxes_lidar']
 
             num_obj = gt_boxes.shape[0]
-            point_indices = roiaware_pool3d_utils.points_in_boxes_cpu(
-                torch.from_numpy(points[:, 0:3]), torch.from_numpy(gt_boxes)
-            ).numpy()  # (nboxes, npoints)
+            if num_obj >0:
+                point_indices = roiaware_pool3d_utils.points_in_boxes_cpu(
+                    torch.from_numpy(points[:, 0:3]), torch.from_numpy(gt_boxes)
+                ).numpy()  # (nboxes, npoints)
 
             for i in range(num_obj):
                 filename = '%s_%s_%d.bin' % (sample_idx, names[i], i)
@@ -419,7 +430,7 @@ class DairKittiDataset(DatasetTemplate):
 
         #sample_idx = info['point_cloud']['lidar_idx']
         sample_idx_int = info['image']['image_idx'] #get sample idx
-        sample_idx = '{:06d}'.format(sample_idx_int) 
+        sample_idx = '{:06d}'.format(int(sample_idx_int)) 
         img_shape = info['image']['image_shape'] #get image width and height
         calib = self.get_calib(sample_idx)#get calibration object (P2, R0, V2C)
         get_item_list = self.dataset_cfg.get('GET_ITEM_LIST', ['points']) #item list
@@ -437,11 +448,14 @@ class DairKittiDataset(DatasetTemplate):
             loc, dims, rots = annos['location'], annos['dimensions'], annos['rotation_y']
             gt_names = annos['name']
 
-            #Kitti 3D annotation is in camera coordinate
-            #create label [n,7] in camera coordinate boxes3d_camera: (N, 7) [x, y, z, l, h, w, r] in rect camera coords
-            gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
-            #convert camera coordinate to Lidar coordinate  boxes3d_lidar: [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
-            gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
+            if len(gt_names)==0:
+                gt_boxes_lidar = np.zeros((0, 7))
+            else:
+                #Kitti 3D annotation is in camera coordinate
+                #create label [n,7] in camera coordinate boxes3d_camera: (N, 7) [x, y, z, l, h, w, r] in rect camera coords
+                gt_boxes_camera = np.concatenate([loc, dims, rots[..., np.newaxis]], axis=1).astype(np.float32)
+                #convert camera coordinate to Lidar coordinate  boxes3d_lidar: [x, y, z, dx, dy, dz, heading], (x, y, z) is the box center
+                gt_boxes_lidar = box_utils.boxes3d_kitti_camera_to_lidar(gt_boxes_camera, calib)
 
             #add new data to input_dict
             input_dict.update({

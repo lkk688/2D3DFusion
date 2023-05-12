@@ -100,3 +100,60 @@ def write_to_file(path, data):
 
     file.close()
     print('Done in ' + path)
+
+# def get_annotationfromlabel(obj_list, calib):
+#     name, truncated, occluded, alpha, bbox = [], [], [], [], []
+#     dimensions, location, rotation_y, score = [], [], [], []
+#     difficulty = []
+#     for obj in obj_list:
+#         name.append(obj.cls_type)
+#         truncated.append(obj.truncation)
+#         occluded.append(obj.occlusion)
+#         alpha.append(obj.alpha)
+#         bbox.append(obj.box2d.reshape(1, 4))
+#         dimensions.append([obj.l, obj.h, obj.w])
+#         location.append(obj.loc.reshape(1, 3))
+#         rotation_y.append(obj.alpha)
+#         score.append(obj.score)
+#         difficulty.append(obj.level)
+
+#     annotations = {}
+#     annotations['name'] = np.array(name)
+#     annotations['truncated'] = np.array(truncated)
+#     annotations['difficulty'] = np.array(difficulty)
+#     annotations['dimensions'] = np.array(dimensions)
+#     annotations['location'] = np.array(location)
+#     annotations['heading_angles'] = np.array(heading_angles)
+
+
+#     annotations['obj_ids'] = np.array(obj_ids)
+#     annotations['tracking_difficulty'] = np.array(tracking_difficulty)
+#     annotations['num_points_in_gt'] = np.array(num_points_in_gt)
+#     annotations['speed_global'] = np.array(speeds)
+#     annotations['accel_global'] = np.array(accelerations)
+
+#     annotations = {}
+#     annotations['name'] = np.array([obj.cls_type for obj in obj_list])
+#     annotations['truncated'] = np.array([obj.truncation for obj in obj_list])
+#     annotations['occluded'] = np.array([obj.occlusion for obj in obj_list])
+#     annotations['alpha'] = np.array([obj.alpha for obj in obj_list])
+#     annotations['bbox'] = np.concatenate([obj.box2d.reshape(1, 4) for obj in obj_list], axis=0)
+#     annotations['dimensions'] = np.array([[obj.l, obj.h, obj.w] for obj in obj_list])  # lhw(camera) format
+#     annotations['location'] = np.concatenate([obj.loc.reshape(1, 3) for obj in obj_list], axis=0)
+#     annotations['rotation_y'] = np.array([obj.ry for obj in obj_list])
+#     annotations['score'] = np.array([obj.score for obj in obj_list])
+#     annotations['difficulty'] = np.array([obj.level for obj in obj_list], np.int32)
+
+#     num_objects = len([obj.cls_type for obj in obj_list if obj.cls_type != 'DontCare'])
+#     num_gt = len(annotations['name'])
+#     index = list(range(num_objects)) + [-1] * (num_gt - num_objects)
+#     annotations['index'] = np.array(index, dtype=np.int32)
+
+#     loc = annotations['location'][:num_objects]
+#     dims = annotations['dimensions'][:num_objects]
+#     rots = annotations['rotation_y'][:num_objects]
+#     loc_lidar = calib.rect_to_lidar(loc)
+#     l, h, w = dims[:, 0:1], dims[:, 1:2], dims[:, 2:3]
+#     loc_lidar[:, 2] += h[:, 0] / 2
+#     gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
+#     annotations['gt_boxes_lidar'] = gt_boxes_lidar
