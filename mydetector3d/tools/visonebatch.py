@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--batchpklfile_path", default='/home/lkk/Developer/data/waymo_models_my3dmodel_epoch128_frame_1.pkl', help="pkl file path"
+        "--batchpklfile_path", default='/home/lkk/Developer/data/dairkitti_models_my3dmodel_epoch64_frame_1.pkl', help="pkl file path"
     )#'./data/waymokittisample'
     parser.add_argument(
         "--index", default="10", help="file index"
@@ -151,7 +151,8 @@ if __name__ == "__main__":
     f.close()
 
     idx = save_dict['idx']
-    modelname = save_dict['modelname'] #='myvoxelnext'
+    #modelname = save_dict['modelname'] #='myvoxelnext'
+    infer_time = save_dict['infer_time']
     datasetname = save_dict['datasetname'] #='waymokitti'
     batch_dict = save_dict['batch_dict'] #=batch_dict
     pred_dicts = save_dict['pred_dicts'] ##batch size array of record_dict{'pred_boxes'[N,7],'pred_scores'[N],'pred_labels'[N]}
