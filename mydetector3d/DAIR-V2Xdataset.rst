@@ -85,6 +85,7 @@ In 'mydetector3d/datasets/dairv2x/dair2kitti.py', convert the infrastructure-sid
 Created kitti folder "/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti"
 
 .. code-block:: console
+
  (mycondapy39) [010796032@coe-hpc2 DAIR-C]$ cd infrastructure-side-point-cloud-kitti/
  (mycondapy39) [010796032@coe-hpc2 infrastructure-side-point-cloud-kitti]$ ls
  ImageSets  testing  training
@@ -96,3 +97,24 @@ Created kitti folder "/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-
 
 Prepare the dataset 
 ~~~~~~~~~~~~~~~~~~~
+
+Run dairkitti_dataset.py to generate the split files, infos, and gt_database.
+ * run **create_split** option in dairkitti_dataset.py to create the split files (trainval.txt, train.txt, and val.txt) in 'ImageSets'
+ * run **create_infos** to generate 'kitti_infos_xx.pkl' and call **create_groundtruth_database** to generate the gt_database
+ 
+.. code-block:: console
+ 
+  $ dairkitti_dataset.py
+  gt_database sample: 12228/12228
+  Database Car: 106628
+  Database Motorcyclist: 14916
+  Database Cyclist: 8845
+  Database Trafficcone: 85790
+  Database Pedestrian: 9060
+  Database Tricyclist: 3286
+  ---------------Data preparation Done---------------
+  $ ls /data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/
+  gt_database  kitti_dbinfos_train.pkl  kitti_infos_train.pkl     kitti_infos_val.pkl  training
+  ImageSets    kitti_infos_test.pkl     kitti_infos_trainval.pkl  testing
+
+
