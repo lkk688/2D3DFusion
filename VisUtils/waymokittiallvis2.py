@@ -403,10 +403,10 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--root_path", default='/home/lkk/Developer/data/v2xvehiclekitti', help="root folder"
+        "--root_path", default='/mnt/f/Dataset/DAIR-C/infrastructure-side-point-cloud-kitti/training', help="root folder"
     )#'./data/waymokittisample'
     parser.add_argument(
-        "--index", default="1766", help="file index"
+        "--index", default="4534", help="file index"
     )
     parser.add_argument(
         "--dataset", default="kitti", help="dataset name" 

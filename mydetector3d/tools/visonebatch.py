@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--batchpklfile_path", default='/home/lkk/Developer/data/waymokitti_second_epoch64_onebatch_1.pkl', help="pkl file path"
+        "--batchpklfile_path", default='/home/lkk/Developer/data/waymo_models_my3dmodel_epoch128_frame_1.pkl', help="pkl file path"
     )#'./data/waymokittisample'
     parser.add_argument(
         "--index", default="10", help="file index"
@@ -139,7 +139,7 @@ if __name__ == "__main__":
         "--dataset", default="waymo", help="dataset name" 
     )#waymokitti
     parser.add_argument(
-        "--modelname", default="second", help="model name" 
+        "--modelname", default="my3dmodel", help="model name" 
     )#waymokitti
     parser.add_argument(
         "--camera_count", default=1, help="Number of cameras used"
