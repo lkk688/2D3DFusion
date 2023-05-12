@@ -106,7 +106,29 @@ Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', cr
  info['calib'] = calib_info
  info['annos'] = annotations
 
-**annotations** dict contains: ['name'], ['truncated'], ['occluded'], ['alpha'], ['bbox'], ['dimensions']: lhw(camera) format, ['location'], ['rotation_y'], ['score'], ['difficulty'], among them
+Get all labels in obj_list via **self.get_label(sample_idx)**, where each obj is
+
+.. code-block:: console
+
+  return object3d_kitti.get_objects_from_label(label_file)
+                          |-------[Object3d(line) for line in lines]
+                                    |-----in mydetector3d/utils/object3d_kitti.py
+
+**annotations** is created from the obj_list, and each dict contains: ['name'], ['truncated'], ['occluded'], ['alpha'], ['bbox'], ['dimensions']: lhw(camera) format, ['location'], ['rotation_y'], ['score'], ['difficulty']
+  * 'name' is class name string from obj.cls_type
+  * 'truncated' (0 non-truncated ~ 1 truncated), 'occluded' (0 fully visible,1,2,3 unknown), 'alpha' (observation angle -pi~pi) are float from original kitti label txt
+    * alpha considers the vector from the camera center to the object center
+    * alpha is zero when this object is located along the Z-axis (front) of the camera
+  * 'bbox' is from obj.box2d label[4-7]: left, top, right, bottom image pixel coordinate (int)
+  * 'dimensions' is 3d object size in meters [obj.l, obj.h, obj.w]
+    * obj.l is from label[10] length
+    * obj.h is from label[9] width
+    * obj.w is from label[8] height
+  * 'location' is from obj.loc (label[11-13]) xyz in camera coordinate
+  * 'rotation_y' from label[14] Rotation ry around Y-axis (to the ground) in camera coordinates [-pi..pi]
+  * 'difficulty' is calculated by **get_kitti_obj_level** based on the box2d height (pixel size>40 means Easy)
+
+These **annotations**  values are further processed to convert the loc from camera rect coordinate to Lidar coordinate, and move the Z height of the loc_lidar (shift objects' center coordinate (original 0) from box bottom to the center)
 
 .. code-block:: console
 
@@ -116,6 +138,7 @@ Run **create_kitti_infos** in 'mydetector3d/datasets/kitti/kitti_dataset.py', cr
  gt_boxes_lidar = np.concatenate([loc_lidar, l, w, h, -(np.pi / 2 + rots[..., np.newaxis])], axis=1)
  annotations['gt_boxes_lidar'] = gt_boxes_lidar
 
+Where "-(np.pi / 2 + rots" is convert kitti camera rot angle definition (camera x-axis, clockwise is positive) to pcdet lidar rot angle definition (Lidar X-axis, clockwise is negative).
 
 My Waymokitti Dataset Process
 -----------------------------
@@ -129,7 +152,7 @@ ImageSets2  waymo_dbinfos_train.pkl  waymo_infos_train.pkl  waymo_infos_val.pkl
 
 Converted Waymo dataset to Kitti format via 'Waymo2KittiAsync.py' in 'https://github.com/lkk688/WaymoObjectDetection', run the following code 
 
-  .. code-block:: console
+.. code-block:: console
   
   [DatasetTools]$ python Waymo2KittiAsync.py
   [DatasetTools]$ python mycreatewaymoinfo.py --createsplitfile_only
@@ -180,8 +203,21 @@ In 'mydetector3d/datasets/waymo/waymo_dataset.py', specify the '--func' in main 
 In ** mygeninfo ** function:
     #. call waymo_utils.process_single_sequence for each tfrecord sequence file, all returned infos dict list are saved in train0to9_infos_train.pkl under root folder '/data/cmpe249-fa22/Waymo132/'
     #. waymo_utils.process_single_sequence created one folder for each sequence under the folder '/data/cmpe249-fa22/Waymo132/train0to9'. One pkl file contains list of all sequence info is saved, including annotations (via generate_labels). 
-      * generate_labels in mydetector3d/datasets/waymo/waymo_utils.py utilize waymo frame.laser_labels for box annatation, loc = [box.center_x, box.center_y, box.center_z], dimensions.append([box.length, box.width, box.height])
-      * save_lidar_points save each frame's lidar data as one npy file (frame index as the name) under the sequence folder, 3d points in vehicle frame.
+      * generate_labels in mydetector3d/datasets/waymo/waymo_utils.py utilize waymo frame.laser_labels for box annatation, loc = [box.center_x, box.center_y, box.center_z], dimensions.append([box.length, box.width, box.height]) the same to the unified coordinate of OpenPCDet
+      * **annotations** contains 'heading_angles', 'speed_global', 'accel_global' are not in Kitti, Kitti's 'alpha', 'rotation_y' are not in here
+      * annotations[gt_boxes_lidar] is calcuated from
+
+.. code-block:: console
+  
+     if annotations['name'].__len__() > 0:
+        #get speed
+        gt_boxes_lidar = np.concatenate([
+            annotations['location'], annotations['dimensions'], annotations['heading_angles'][..., np.newaxis], speed], axis=1)
+    else:
+        gt_boxes_lidar = np.zeros((0, 9))
+    annotations['gt_boxes_lidar'] = gt_boxes_lidar
+    
+save_lidar_points save each frame's lidar data as one npy file (frame index as the name) under the sequence folder, 3d points in vehicle frame.
     
 In ** mygengtdb ** function->create_waymo_gt_database:
     #. call dataset.create_groundtruth_database (in waymo_dataset.py) for 'train' split
