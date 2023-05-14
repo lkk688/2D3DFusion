@@ -587,8 +587,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/dairkitti_dataset.yaml', help='specify the config of dataset')
     parser.add_argument('--func', type=str, default='create_infos', help='')
-    parser.add_argument('--inputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/', help='')
-    parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/', help='')
+    parser.add_argument('--inputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti/', help='')
+    parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti/', help='')
 
     args = parser.parse_args()
 
