@@ -1,14 +1,38 @@
 import numpy as np
 from ...utils import box_utils
+from glob import glob
+# def filter_otherobjects(annos, map_name_to_kitti):
+#     newannots=[]
+#     for anno in annos:
+#         anno_size=anno['name'].shape[0]
+#         for k in range(anno_size):
+#             currentname=anno['name'][k]
+#             if currentname in map_name_to_kitti.keys():
+#                 newannots.append(anno)
 
-def filter_otherobjects(annos, map_name_to_kitti):
-    newannots=[]
-    for anno in annos:
-        anno_size=anno['name'].shape[0]
-        for k in range(anno_size):
-            currentname=anno['name'][k]
-            if currentname in map_name_to_kitti.keys():
-                newannots.append(anno)
+def replaceclass_txt(path, find_strs, replace_str):
+    with open(path, "r+") as f:
+        data = f.readlines()
+        new_data = ""
+        for line in data:
+            for find_str in find_strs:
+                if find_str in line:
+                    line = line.replace(find_str, replace_str)
+            new_data = new_data + line
+    os.remove(path)
+    f_new = open(path, "w")
+    f_new.write(new_data)
+    f_new.close()
+
+def rewrite_label2(root_path, folders):
+    path_list = [path for x in folders for path in glob(os.path.join(root_path, x, "*.txt"))]
+    #path_list = get_files_path(path_file, ".txt")
+    #["Truck","Van","Bus","Car"] has been converted to Car in dair2kitti conversion
+    find_strs = ["Truck","Van","Bus","Car"]
+    replace_str = "Car"
+    for path in path_list:
+        replaceclass_txt(path, find_strs, replace_str)
+        #rewrite_txt(path)
 
 def transform_annotations_to_kitti_format(annos, map_name_to_kitti=None, info_with_fakelidar=False):
     """

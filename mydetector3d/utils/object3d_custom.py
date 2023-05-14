@@ -9,8 +9,9 @@ def get_objects_from_label(label_file):
     return objects
 
 
-def cls_type_to_id(cls_type):
-    type_to_id = {'Car': 1, 'Pedestrian': 2, 'Cyclist': 3, 'Van': 4}
+def cls_type_to_id(cls_type):  #not used in geninfo
+    #type_to_id = {'Car': 1, 'Pedestrian': 2, 'Cyclist': 3, 'Van': 4}
+    type_to_id = {'Car': 1, 'Pedestrian': 2, 'Cyclist': 3, 'Other': 4}
     if cls_type not in type_to_id.keys():
         return -1
     return type_to_id[cls_type]
@@ -21,7 +22,7 @@ class Object3d(object):
         label = line.strip().split(' ')
         self.src = line
         self.cls_type = label[0]
-        self.cls_id = cls_type_to_id(self.cls_type)
+        self.cls_id = cls_type_to_id(self.cls_type) #not used in geninfo
         self.truncation = float(label[1])
         self.occlusion = float(label[2])  # 0:fully visible 1:partly occluded 2:largely occluded 3:unknown
         self.alpha = float(label[3])

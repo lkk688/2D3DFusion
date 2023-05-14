@@ -7,7 +7,7 @@ from skimage import io
 from mydetector3d.datasets.kitti import kitti_utils
 #from . import kitti_utils
 from mydetector3d.ops.roiaware_pool3d import roiaware_pool3d_utils
-from mydetector3d.utils import box_utils, calibration_waymokitti, calibration_kitti, common_utils, object3d_kitti
+from mydetector3d.utils import box_utils, calibration_kitti, common_utils, object3d_custom #object3d_kitti
 from mydetector3d.datasets.dataset import DatasetTemplate
 
 
@@ -94,7 +94,8 @@ class DairKittiDataset(DatasetTemplate):
 
         #read everyline as object3d class
         #return objects[] list, contain object information,e.g., type, xy
-        return object3d_kitti.get_objects_from_label(label_file)
+        #return object3d_kitti.get_objects_from_label(label_file)
+        return object3d_custom.get_objects_from_label(label_file)
 
     def get_depth_map(self, idx): #not used
         """
@@ -532,6 +533,49 @@ def create_kitti_infos(dataset_cfg, class_names, data_path, save_path, workers=4
     print('---------------Data preparation Done---------------')
 
 
+def checklabelfiles(root_path, folder):
+    path_list = [path for path in glob(os.path.join(root_path, folder, "*.txt"))]
+    print(len(path_list))#12424
+    classname_count={}
+    for label_file in path_list:
+        #object3d_custom.get_objects_from_label(label_file)
+        with open(label_file, 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            label = line.strip().split(' ')
+            cls_type = label[0]
+            if cls_type in classname_count.keys():
+                classname_count[cls_type]=classname_count[cls_type]+1
+            else:
+                classname_count[cls_type]=1
+    return classname_count
+
+def replacelabelfiles(root_path, folder, find_strs, replace_str):
+    path_list = [path for path in glob(os.path.join(root_path, folder, "*.txt"))]
+    print(len(path_list))#12424
+    # find_strs = ["Truck","Van","Bus","Car"]
+    # replace_str = "Car"
+    for label_file in path_list:
+        kitti_utils.replaceclass_txt(label_file, find_strs, replace_str)
+
+def checkinfopklfiles(pklfile_folder, train_split='train'):
+    kitti_infos=[]
+    train_filename = pklfile_folder / ('kitti_infos_%s.pkl' % train_split)
+    object_nums={}
+    with open(train_filename, 'rb') as f:
+        infos = pickle.load(f)
+        kitti_infos.extend(infos)
+    for info in kitti_infos:
+        for key in info.keys():
+            print(key)
+        annotations=info['annos']
+        lidar_idx=info['point_cloud']['lidar_idx']
+        object_nums[lidar_idx]=len(annotations['name'])
+    return object_nums
+        # for key in annotations.keys():
+        #     print("annotations:", key)
+        #     print(annotations[key].shape)
+
 from pathlib import Path
 import os
 if __name__ == '__main__':
@@ -543,8 +587,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/dairkitti_dataset.yaml', help='specify the config of dataset')
     parser.add_argument('--func', type=str, default='create_infos', help='')
-    parser.add_argument('--inputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti/', help='')
-    parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti/', help='')
+    parser.add_argument('--inputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/', help='')
+    parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/', help='')
 
     args = parser.parse_args()
 
@@ -554,17 +598,38 @@ if __name__ == '__main__':
     except:
         yaml_config = yaml.safe_load(open(args.cfg_file))
     dataset_cfg = EasyDict(yaml_config)
-    
+
+    trainingfolder=os.path.join(args.inputfolder,'training')
     if args.func == 'create_split':
-        trainingfolder=os.path.join(args.inputfolder,'training')
+        
         kitti_utils.create_trainvaltestsplitfile(trainingfolder, args.outputfolder)
     elif args.func == 'create_infos':
         create_kitti_infos(
             dataset_cfg=dataset_cfg,
-            class_names=['Car', 'Pedestrian', 'Cyclist'],
+            class_names=['Car', 'Pedestrian', 'Cyclist', 'Other'],
             data_path=Path(args.inputfolder),
             save_path=Path(args.outputfolder)
         )
+    elif args.func == 'checklabelfiles':
+        classname_count = checklabelfiles(trainingfolder, 'label_2')
+        print(classname_count)
+    elif args.func == 'replacelabelnames':
+        classname_count = checklabelfiles(trainingfolder, 'label_2')
+        print(classname_count)
+        find_strs = ["Motorcyclist", "Tricyclist"] # ["Truck","Van","Bus","Car"]
+        replace_str = "Cyclist" #"Car"
+        replacelabelfiles(trainingfolder, 'label_2', find_strs, replace_str)
+        classname_count = checklabelfiles(trainingfolder, 'label_2')
+        print(classname_count)
+        find_strs = ["Trafficcone", "Barrowlist"] # ["Truck","Van","Bus","Car"]
+        replace_str = "Other" #"Car"
+        replacelabelfiles(trainingfolder, 'label_2', find_strs, replace_str)
+        classname_count = checklabelfiles(trainingfolder, 'label_2')
+        print(classname_count)
+    elif args.func == 'checkinfopklfiles':
+        object_nums=checkinfopklfiles(Path(args.inputfolder), train_split='train')
+        print(object_nums)
+
 
 # if __name__ == '__main__':
 #     import sys
