@@ -97,12 +97,12 @@ def parse_config():
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/my3dmodel/0511/ckpt/latest_model.pth', help='checkpoint to evaluate')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/my3dmodel/0513/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
     parser.add_argument('--kittiformat', default=True, help='')
-    parser.add_argument('--eval_only', default=True, help='') #When detection result is available, set to True and just run the evaluation
+    parser.add_argument('--eval_only', default=False, help='') #When detection result is available, set to True and just run the evaluation
     parser.add_argument('--savebatchidx', type=int, default=1, help='Save one batch data to pkl for visualization')
     parser.add_argument('--infer_time', default=True, help='calculate inference latency') #action='store_true' true if specified
 
@@ -219,6 +219,7 @@ def main():
         det_annos = pickle.load(f)         # load file content as mydict
         f.close()
 
+    
     result_str, result_dict =runevaluation(dataset, det_annos, class_names, args.eval_output_dir, args.kittiformat)
     print(result_str)
     print(result_dict)
@@ -345,27 +346,29 @@ def runevaluation(dataset, det_annos, class_names, final_output_dir, kittiformat
         print("datainfo not exist")
         return
 
+    #remove objects not in the Kitti classes list
     eval_det_annos = [] #copy.deepcopy(det_annos) #'boxes_lidar'
     eval_gt_annos = [] #[copy.deepcopy(info['annos']) for info in datainfo]
     total_framenum= len(datainfo) #size of eval_det_annos should be the same to eval_gt_annos
     det_emptyframe=[]
     gt_emptyframe=[]
+    kitticlass_names=['Car', 'Pedestrian', 'Cyclist'] #['Car', 'Pedestrian', 'Cyclist', 'Other']
     for k in range(total_framenum):
         info = datainfo[k]
         det_annotation = det_annos[k]
         annotation=info['annos']
         names_array = annotation['name']
-        inds = [i for i, x in enumerate(names_array) if x in class_names]
-        if len(inds)>0: #remove frames with no objects
+        inds = [i for i, x in enumerate(names_array) if x in kitticlass_names]
+        if len(inds)>0: #remove frames with no objects and not in kitticlass_names list
             inds = np.array(inds, dtype=np.int64)
             for key in annotation.keys():
-                print(key)
-                print(annotation[key].shape)
+                #print(key)
+                #print(annotation[key].shape)
                 if annotation[key].ndim==2:
                     annotation[key]=annotation[key][inds,:]
                 elif annotation[key].ndim==1:
                     annotation[key]=annotation[key][inds]
-                print(annotation[key].shape)
+                #print(annotation[key].shape)
             eval_gt_annos.append(annotation)
             eval_det_annos.append(det_annotation)
         else:
@@ -402,7 +405,15 @@ def runevaluation(dataset, det_annos, class_names, final_output_dir, kittiformat
     #     if 'alpha' not in det_anno.keys():
     #         det_anno['alpha']=np.array([-10, -10]) #waymo dataset do not have alpha result
     
-    result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
+    class_to_name = {
+            0: 'Car',
+            1: 'Pedestrian',
+            2: 'Cyclist',
+            3: 'Other', #'Sign', #'Van',
+            4: 'Person_sitting',
+            5: 'Truck'
+        }
+    result_str, result_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, kitticlass_names, class_to_name)
     text_file = open(final_output_dir / "evalresult_str", "w")
     text_file.write(result_str)
     text_file.close()
