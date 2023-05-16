@@ -3,7 +3,7 @@ import pickle
 
 import numpy as np
 from skimage import io
-
+import json
 from mydetector3d.datasets.kitti import kitti_utils
 #from . import kitti_utils
 from mydetector3d.ops.roiaware_pool3d import roiaware_pool3d_utils
@@ -35,6 +35,21 @@ class DairKittiDataset(DatasetTemplate):
 
         self.map_class_to_kitti = self.dataset_cfg.MAP_CLASS_TO_KITTI #new added
 
+        if self.dataset_cfg.Early_Fusion == True:
+            f = open(self.dataset_cfg.I2Vmap_path, 'rb')   # if only use 'r' for reading; it will show error: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte
+            self.i2vmap = pickle.load(f)         # load file content as mydict 6601
+            f.close()
+            newkitti_infos= []
+            for info in self.kitti_infos:
+                #sample_idx = info['point_cloud']['lidar_idx']
+                sample_idx_int = info['image']['image_idx'] #get sample idx
+                sample_idx = '{:06d}'.format(int(sample_idx_int)) 
+                v_lidarfile=sample_idx+'.bin'
+                if v_lidarfile in self.i2vmap.keys():
+                    newkitti_infos.append(info) #only select frames has infrastructure cooperation
+            self.kitti_infos = newkitti_infos #12228<-5250
+            
+
     def include_kitti_data(self, mode):
         if self.logger is not None:
             self.logger.info('Loading DAIRKITTI dataset')
@@ -63,10 +78,36 @@ class DairKittiDataset(DatasetTemplate):
         split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
         self.sample_id_list = [x.strip() for x in open(split_dir).readlines()] if split_dir.exists() else None
 
+    
+    def get_fusion(self, path_c_data_info):
+        #c_data_info = read_json(path_c_data_info)
+        with open(path_c_data_info, "r") as load_f:
+            c_data_info = json.load(load_f)
+        #info = copy.deepcopy(self.kitti_infos[index]) #get info dict from index-th frame in kitti_infos array
+        for info in self.kitti_infos:
+            #sample_idx = info['point_cloud']['lidar_idx']
+            sample_idx_int = info['image']['image_idx'] #get sample idx
+            sample_idx = '{:06d}'.format(int(sample_idx_int)) 
+            img_shape = info['image']['image_shape'] #get image width and height
+
     def get_lidar(self, idx):
-        lidar_file = self.root_split_path / 'velodyne' / ('%s.bin' % idx)
+        v_binfilename = '%s.bin' % idx
+        lidar_file = self.root_split_path / 'velodyne' / v_binfilename
         assert lidar_file.exists()
-        return np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 4)
+        v_points = np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 4)
+        if self.dataset_cfg.Early_Fusion == True:
+            if v_binfilename in self.i2vmap.keys():
+                i_binfilename=self.i2vmap[v_binfilename]
+                i_lidarbin=Path(self.dataset_cfg.InfrastructureLidar_path) / i_binfilename
+                i_points = np.fromfile(i_lidarbin, dtype=np.float32).reshape(-1, 4)
+                points = np.append(v_points, i_points, axis=0)
+                mask = ~np.isnan(points[:, 0]) & ~np.isnan(points[:, 1]) & ~np.isnan(points[:, 2]) & ~np.isnan(points[:, 3])
+                #print("removed nan points: ", sum(~mask))
+                v_points=points[mask,:]
+            else:
+                print("Binfile key not available:", v_binfilename)
+        return v_points
+
 
     def get_image(self, idx):
         """
@@ -423,6 +464,7 @@ class DairKittiDataset(DatasetTemplate):
         return len(self.kitti_infos)
 
     def __getitem__(self, index):
+        #print("get item: ", index)
         # index = 4
         if self._merge_all_iters_to_one_epoch:
             index = index % len(self.kitti_infos)
@@ -586,9 +628,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/dairkitti_dataset.yaml', help='specify the config of dataset')
-    parser.add_argument('--func', type=str, default='create_infos', help='')
-    parser.add_argument('--inputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti/', help='')
-    parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/infrastructure-side-point-cloud-kitti/', help='')
+    parser.add_argument('--func', type=str, default='testdataset', help='')
+    parser.add_argument('--inputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/', help='')
+    parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/DAIR-C/single-vehicle-side-point-cloud-kitti/', help='')
 
     args = parser.parse_args()
 
@@ -629,6 +671,19 @@ if __name__ == '__main__':
     elif args.func == 'checkinfopklfiles':
         object_nums=checkinfopklfiles(Path(args.inputfolder), train_split='train')
         print(object_nums)
+    elif args.func == 'testdataset':
+        lidarpath_list = [path for path in glob(os.path.join(args.inputfolder, 'training', 'velodyne', "*.bin"))]
+        print("total lidar files:", len(lidarpath_list))
+        from torch.utils.data import DataLoader
+        dataset = DairKittiDataset(dataset_cfg=dataset_cfg, class_names=['Car', 'Pedestrian', 'Cyclist', 'Other'], root_path=Path(args.inputfolder), training=True)
+        dataloader = DataLoader(
+        dataset, batch_size=4, pin_memory=True, num_workers=1,
+        shuffle=None, collate_fn=dataset.collate_batch,
+        drop_last=False, sampler=None, timeout=0, worker_init_fn=None)
+        print("dataloader len:", len(dataloader))
+        iterator=iter(dataloader)
+        onebatch=next(iterator)
+        print(onebatch)
 
 
 # if __name__ == '__main__':

@@ -82,6 +82,14 @@ def global_scaling(gt_boxes, points, scale_range, return_scale=False):
     if scale_range[1] - scale_range[0] < 1e-3:
         return gt_boxes, points
     noise_scale = np.random.uniform(scale_range[0], scale_range[1])
+    # checkx=np.isnan(points[:, 0])
+    # print(sum(checkx))
+    # checky=np.isnan(points[:, 1])
+    # print(sum(checky))
+    # checkz=np.isnan(points[:, 2])
+    # print(sum(checkz))
+    # checki=np.isnan(points[:, 3])
+    # print(sum(checki))
     points[:, :3] *= noise_scale
     gt_boxes[:, :6] *= noise_scale
     if gt_boxes.shape[1] > 7:

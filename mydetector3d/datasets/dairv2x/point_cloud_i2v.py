@@ -6,7 +6,7 @@ import json
 import argparse
 import numpy as np
 from pypcd import pypcd
-
+import pickle
 from tqdm import tqdm
 import errno
 
@@ -198,6 +198,27 @@ def get_i2v(path_c, path_dest, num_worker):
             for _ in futures.as_completed(res):
                 pbar.update(1)
 
+def createv2iframemap(path_c):
+    v2imap={}
+    path_c_data_info = os.path.join(path_c, "cooperative/data_info.json")
+    path_i_data_info = os.path.join(path_c, "infrastructure-side/data_info.json")
+    path_v_data_info = os.path.join(path_c, "vehicle-side/data_info.json")
+    c_data_info = read_json(path_c_data_info) #6617
+    i_data_info = read_json(path_i_data_info) #12424
+    v_data_info = read_json(path_v_data_info) #15285
+    total = len(c_data_info) #6617
+    for data in c_data_info:
+        # for key in data.keys():
+        #     print(key)
+        vehicle_pointcloud_path=data["vehicle_pointcloud_path"]
+        vehicle_frameid=os.path.split(vehicle_pointcloud_path)[-1].replace(".pcd", ".bin")
+        infrastructure_pointcloud_path=data["infrastructure_pointcloud_path"]
+        infrastructure_frameid=os.path.split(infrastructure_pointcloud_path)[-1].replace(".pcd", ".bin")
+        v2imap[vehicle_frameid]=infrastructure_frameid
+    return v2imap
+
+
+
 def get_i2vnew(path_c, path_dest, infrastructurelidar, num_worker):
     mkdir_p(path_dest) #create early-fusion folder
     path_c_data_info = os.path.join(path_c, "cooperative/data_info.json")
@@ -261,6 +282,7 @@ parser.add_argument(
     default=4,
     help="Number of workers for multi-processing",
 )
+parser.add_argument('--func', type=str, default='get_v2imap', help='')
 
 #Lidar path: /data/cmpe249-fa22/DAIR-C/cooperative-vehicle-infrastructure-infrastructure-side-velodyne
 if __name__ == "__main__":
@@ -270,5 +292,13 @@ if __name__ == "__main__":
 
     num_worker = args.num_worker
 
-    #get_i2v(source_root, target_root, num_worker)
-    get_i2vnew(source_root, target_root, args.infrastructurelidar, num_worker)
+    if args.func == 'get_i2v':
+        #get_i2v(source_root, target_root, num_worker)
+        get_i2vnew(source_root, target_root, args.infrastructurelidar, num_worker)
+    elif args.func == 'get_v2imap':
+        v2imap = createv2iframemap(source_root)
+        resultfile=Dataset_root+"early-fusion/" + 'v2imap.pkl'
+        with open(resultfile, 'wb') as f:
+            pickle.dump(v2imap, f)
+
+    

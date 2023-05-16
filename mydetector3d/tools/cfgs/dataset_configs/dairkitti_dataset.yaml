@@ -23,6 +23,10 @@ INFO_PATH: {
 GET_ITEM_LIST: ["points"]
 FOV_POINTS_ONLY: False #True
 
+Early_Fusion: True
+I2Vmap_path: "/data/cmpe249-fa22/DAIR-C/early-fusion/v2imap.pkl"
+InfrastructureLidar_path: "/data/cmpe249-fa22/DAIR-C/early-fusion/velodyne/lidar_i2v/"
+
 DATA_AUGMENTOR:
     DISABLE_AUG_LIST: ['placeholder']
     AUG_CONFIG_LIST:

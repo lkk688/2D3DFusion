@@ -23,6 +23,8 @@ INFO_PATH: {
 GET_ITEM_LIST: ["points"]
 FOV_POINTS_ONLY: False #True
 
+Early_Fusion: False
+
 DATA_AUGMENTOR:
     DISABLE_AUG_LIST: ['placeholder']
     AUG_CONFIG_LIST:

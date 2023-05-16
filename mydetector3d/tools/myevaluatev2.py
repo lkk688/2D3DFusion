@@ -93,11 +93,11 @@ def load_data_to_device(batch_dict, device):
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/my3dmodel.yaml', help='specify the model config')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/myvoxelnext.yaml', help='specify the model config')
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/my3dmodel/0513/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/myvoxelnext/0514/ckpt/latest_model.pth', help='checkpoint to evaluate')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
