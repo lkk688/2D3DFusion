@@ -130,7 +130,7 @@ if __name__ == "__main__":
     # Parser
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--batchpklfile_path", default='/home/lkk/Developer/data/dairkitti_models_my3dmodel_epoch64_frame_1.pkl', help="pkl file path"
+        "--batchpklfile_path", default='/home/lkk/Developer/data/dairkitti_models_my3dmodel_epoch128_frame_1.pkl', help="pkl file path"
     )#'./data/waymokittisample'
     parser.add_argument(
         "--index", default="10", help="file index"
