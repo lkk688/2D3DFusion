@@ -1,4 +1,12 @@
 # 3DDepth
+## Readthedocs
+
+The document for 3D detection model design and Kitti and Waymo data training: https://mytutorial-lkk.readthedocs.io/en/latest/mydetector3d.html
+
+The document for 3D detection based on V2X cooperative sensing data: https://mytutorial-lkk.readthedocs.io/en/latest/3DV2X.html
+
+
+
 ## Setup repo
 Clone this repository, install this package (need NVIDIA CUDA environment)
 ```bash

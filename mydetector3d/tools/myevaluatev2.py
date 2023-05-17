@@ -97,7 +97,8 @@ def parse_config():
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/myvoxelnext/0514/ckpt/latest_model.pth', help='checkpoint to evaluate')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/myvoxelnext/0516/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
+    parser.add_argument('--tag', type=str, default='0516', help='rag name')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
@@ -114,9 +115,10 @@ def parse_config():
     
     ckptsplits = args.ckpt.split('/')  #[-2:-1]
     cfg.datasetname = ckptsplits[-5] #Path(args.dataset_cfg_file).stem
-    epoch =Path(ckptsplits[-1]).stem #remove .pth checkpoint_epoch_128.pth
-    epoch =epoch.split('_')[-1] #get epoch number
-    args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_epoch' + epoch
+    #epoch =Path(ckptsplits[-1]).stem #remove .pth checkpoint_epoch_128.pth
+    #epoch =epoch.split('_')[-1] #get epoch number
+    #args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_epoch' + epoch
+    args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_'+args.tag
 
 
     args.batch_size = cfg.OPTIMIZATION.BATCH_SIZE_PER_GPU #4

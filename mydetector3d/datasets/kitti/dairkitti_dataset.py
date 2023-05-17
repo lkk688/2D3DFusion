@@ -46,7 +46,10 @@ class DairKittiDataset(DatasetTemplate):
                 sample_idx = '{:06d}'.format(int(sample_idx_int)) 
                 v_lidarfile=sample_idx+'.bin'
                 if v_lidarfile in self.i2vmap.keys():
-                    newkitti_infos.append(info) #only select frames has infrastructure cooperation
+                    i_binfilename=self.i2vmap[v_lidarfile]
+                    i_lidarbin=Path(self.dataset_cfg.InfrastructureLidar_path) / i_binfilename
+                    if i_lidarbin.exists():
+                        newkitti_infos.append(info) #only select frames has infrastructure cooperation
             self.kitti_infos = newkitti_infos #12228<-5250
             
 
@@ -95,7 +98,7 @@ class DairKittiDataset(DatasetTemplate):
         lidar_file = self.root_split_path / 'velodyne' / v_binfilename
         assert lidar_file.exists()
         v_points = np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 4)
-        if self.dataset_cfg.Early_Fusion == True:
+        if self.dataset_cfg.Early_Fusion == True and self.dataset_cfg.Lidar_Fusion:
             if v_binfilename in self.i2vmap.keys():
                 i_binfilename=self.i2vmap[v_binfilename]
                 i_lidarbin=Path(self.dataset_cfg.InfrastructureLidar_path) / i_binfilename
