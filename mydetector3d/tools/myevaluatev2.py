@@ -46,6 +46,7 @@ from mydetector3d.models.detectors.pointpillar import PointPillar
 from mydetector3d.models.detectors.second_net import SECONDNet
 from mydetector3d.models.detectors.voxelnext import VoxelNeXt
 from mydetector3d.models.detectors.my3dmodel import My3Dmodel
+from mydetector3d.models.detectors.my3dmodelv2 import My3Dmodelv2
 __modelall__ = {
     #'Detector3DTemplate': Detector3DTemplate,
      'SECONDNet': SECONDNet,
@@ -53,6 +54,7 @@ __modelall__ = {
     # 'PVRCNN': PVRCNN,
      'PointPillar': PointPillar,
      'My3Dmodel': My3Dmodel,
+     'My3Dmodelv2': My3Dmodelv2,
      'VoxelNeXt': VoxelNeXt
 }
 
@@ -93,12 +95,12 @@ def load_data_to_device(batch_dict, device):
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/myvoxelnext.yaml', help='specify the model config')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/my3dmodelv2.yaml', help='specify the model config')
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/myvoxelnext/0516/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
-    parser.add_argument('--tag', type=str, default='0516', help='rag name')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/my3dmodelv2/0517/ckpt/latest_model.pth', help='checkpoint to evaluate')
+    parser.add_argument('--tag', type=str, default='0517', help='rag name')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')

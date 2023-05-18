@@ -1,5 +1,6 @@
 from .detector3d_template import Detector3DTemplate
 from mydetector3d.models.sub_modules.compress import NaiveCompressor 
+import torch.nn as nn
 #modified based on PointPillar
 class My3Dmodelv2(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
@@ -29,19 +30,25 @@ class My3Dmodelv2(Detector3DTemplate):
         #model_info_dict['num_bev_features'] = map_to_bev_module.num_bev_features
 
         #pfe_module, model_info_dict = self.build_pfe(model_info_dict=model_info_dict) #None for PointPillar
-
         backbone_2d_module, model_info_dict = self.build_backbone_2d(model_info_dict=model_info_dict) #BaseBEVBackbone
         self.add_module('backbone_2d', backbone_2d_module)#nn.module add_module
         print("num_bev_features features after backbone2d", model_info_dict['num_bev_features']) #384
         #model_info_dict['num_bev_features'] = backbone_2d_module.num_bev_features
 
-        compress_raito =2
-        compressor = NaiveCompressor(384, compress_raito)
+        self.conv = nn.Sequential(
+            nn.Conv2d(384, 64, kernel_size=1, stride=1),
+            nn.ReLU(inplace=True)
+        )
+        model_info_dict['module_list'].append(self.conv)
+        self.add_module('conv', self.conv)
+
+        compress_raito =8 #2
+        compressor = NaiveCompressor(64, compress_raito)#384
         model_info_dict['module_list'].append(compressor)
         self.add_module('compressor_module', compressor)
         #data_dict['spatial_features_2d']
 
-
+        model_info_dict['num_bev_features']=64
         dense_head_module, model_info_dict = self.build_dense_head(model_info_dict=model_info_dict) #AnchorHeadSingle
         self.add_module('dense_head', dense_head_module)#nn.module add_module
         print("Num point features after dense_head", model_info_dict['num_point_features'])
@@ -54,9 +61,18 @@ class My3Dmodelv2(Detector3DTemplate):
         #     'vfe', 'backbone_3d', 'map_to_bev_module', 'pfe',
         #     'backbone_2d', 'dense_head',  'point_head', 'roi_head'
         # ]
+        #self.backbone_fix()
+    
+    def backbone_fix(self):
+        for cur_module in self.module_list[:-2]:
+            for p in cur_module.parameters():
+                p.requires_grad = False
     
     def forward(self, batch_dict):
-        for cur_module in self.module_list:
+        for cur_module in self.module_list[0:3]:
+            batch_dict = cur_module(batch_dict)
+        batch_dict['spatial_features_2d']=self.conv(batch_dict['spatial_features_2d'])#[4, 384, 468, 468]->[4, 64, 468, 468]
+        for cur_module in self.module_list[4:6]:
             batch_dict = cur_module(batch_dict)
 
         if self.training:
