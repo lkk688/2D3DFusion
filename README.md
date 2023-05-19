@@ -20,6 +20,12 @@ pip install spconv-cu117
 pip install numba
 ```
 
+build additional cuda ops libraries via
+```bash
+(mycondapy39) [010796032@cs001 3DDepth]$ module load cuda-11.8.0-gcc-11.2.0-5tlywx3 #should match pytorch cuda version
+(mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/ops/setup.py build_ext --inplace
+```
+
 Install 'mayavi' for 3d point cloud visualization.
 
 ## Kitti data preparation

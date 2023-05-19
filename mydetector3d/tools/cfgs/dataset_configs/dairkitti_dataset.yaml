@@ -20,7 +20,7 @@ INFO_PATH: {
     'test': [kitti_infos_val.pkl],
 }
 
-GET_ITEM_LIST: ["points"]
+GET_ITEM_LIST: ["points", "images"]
 FOV_POINTS_ONLY: False #True
 
 Early_Fusion: True
