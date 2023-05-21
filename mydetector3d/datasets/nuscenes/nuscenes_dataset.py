@@ -103,18 +103,18 @@ class NuScenesDataset(DatasetTemplate):
         lidar_path = self.root_path / info['lidar_path']
         points = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
 
-        sweep_points_list = [points]
+        sweep_points_list = [points] #(34720, 4)
         sweep_times_list = [np.zeros((points.shape[0], 1))]
 
         for k in np.random.choice(len(info['sweeps']), max_sweeps - 1, replace=False):
             points_sweep, times_sweep = self.get_sweep(info['sweeps'][k])
-            sweep_points_list.append(points_sweep)
+            sweep_points_list.append(points_sweep) #(25005, 4)
             sweep_times_list.append(times_sweep)
 
-        points = np.concatenate(sweep_points_list, axis=0)
-        times = np.concatenate(sweep_times_list, axis=0).astype(points.dtype)
+        points = np.concatenate(sweep_points_list, axis=0)#size 10 array to (259765, 4)
+        times = np.concatenate(sweep_times_list, axis=0).astype(points.dtype) #(259765, 1)
 
-        points = np.concatenate((points, times), axis=1)
+        points = np.concatenate((points, times), axis=1) #(259765, 5)
         return points
 
     def crop_image(self, input_dict):
@@ -321,25 +321,25 @@ class NuScenesDataset(DatasetTemplate):
         for idx in tqdm(range(len(self.infos))):
             sample_idx = idx
             info = self.infos[idx]
-            points = self.get_lidar_with_sweeps(idx, max_sweeps=max_sweeps)
-            gt_boxes = info['gt_boxes']
-            gt_names = info['gt_names']
+            points = self.get_lidar_with_sweeps(idx, max_sweeps=max_sweeps) #(259765, 5) last column is time
+            gt_boxes = info['gt_boxes'] #(10, 9)
+            gt_names = info['gt_names'] #(10,)
 
             box_idxs_of_pts = roiaware_pool3d_utils.points_in_boxes_gpu(
                 torch.from_numpy(points[:, 0:3]).unsqueeze(dim=0).float().cuda(),
                 torch.from_numpy(gt_boxes[:, 0:7]).unsqueeze(dim=0).float().cuda()
-            ).long().squeeze(dim=0).cpu().numpy()
+            ).long().squeeze(dim=0).cpu().numpy() #(259765,)
 
-            for i in range(gt_boxes.shape[0]):
-                filename = '%s_%s_%d.bin' % (sample_idx, gt_names[i], i)
+            for i in range(gt_boxes.shape[0]):#for 10 gt objects
+                filename = '%s_%s_%d.bin' % (sample_idx, gt_names[i], i) #0_traffic_cone_0.bin 
                 filepath = database_save_path / filename
-                gt_points = points[box_idxs_of_pts == i]
+                gt_points = points[box_idxs_of_pts == i] #(20, 5)
 
-                gt_points[:, :3] -= gt_boxes[i, :3]
+                gt_points[:, :3] -= gt_boxes[i, :3] #get relative xyz for gt_points
                 with open(filepath, 'w') as f:
                     gt_points.tofile(f)
 
-                if (used_classes is None) or gt_names[i] in used_classes:
+                if (used_classes is None) or gt_names[i] in used_classes: #used_classes is None
                     db_path = str(filepath.relative_to(self.root_path))  # gt_database/xxxxx.bin
                     db_info = {'name': gt_names[i], 'path': db_path, 'image_idx': sample_idx, 'gt_idx': i,
                                'box3d_lidar': gt_boxes[i], 'num_points_in_gt': gt_points.shape[0]}
@@ -358,7 +358,7 @@ def create_nuscenes_info(version, data_path, save_path, max_sweeps=10, with_cam=
     from nuscenes.nuscenes import NuScenes
     from nuscenes.utils import splits
     from mydetector3d.datasets.nuscenes import nuscenes_utils
-    data_path = data_path # / version
+    data_path = data_path  / version
     save_path = save_path / version
 
     assert version in ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
@@ -410,15 +410,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/nuscenes_dataset.yaml', help='specify the config of dataset')
     parser.add_argument('--datapath', type=str, default='/data/cmpe249-fa22/nuScenes', help='specify the path of dataset')
-    parser.add_argument('--func', type=str, default='create_nuscenes_infos', help='')
+    parser.add_argument('--func', type=str, default='create_groundtruth', help='')
     parser.add_argument('--version', type=str, default='v1.0-trainval', help='')
     parser.add_argument('--with_cam', default=True, help='use camera or not')
     args = parser.parse_args()
+    dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
+    ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+    dataset_cfg.VERSION = args.version
 
     if args.func == 'create_nuscenes_infos':
-        dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
-        ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
-        dataset_cfg.VERSION = args.version
         create_nuscenes_info(
             version=dataset_cfg.VERSION,
             data_path=Path(args.datapath),
@@ -426,7 +426,7 @@ if __name__ == '__main__':
             max_sweeps=dataset_cfg.MAX_SWEEPS,
             with_cam=args.with_cam
         )
-
+    elif args.func == 'create_groundtruth':
         nuscenes_dataset = NuScenesDataset(
             dataset_cfg=dataset_cfg, class_names=None,
             root_path=Path(args.datapath),
