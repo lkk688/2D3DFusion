@@ -37,10 +37,10 @@ class Detector3DTemplate(nn.Module):
             'module_list': [],
             'num_rawpoint_features': self.dataset.point_feature_encoder.num_point_features, #4
             'num_point_features': self.dataset.point_feature_encoder.num_point_features, #4
-            'grid_size': self.dataset.grid_size,
+            'grid_size': self.dataset.grid_size, #[1997, 1997,   30]
             'point_cloud_range': self.dataset.point_cloud_range,
-            'voxel_size': self.dataset.voxel_size,
-            'depth_downsample_factor': self.dataset.depth_downsample_factor
+            'voxel_size': self.dataset.voxel_size, #[0.075, 0.075, 0.2]
+            'depth_downsample_factor': self.dataset.depth_downsample_factor #None
         }
         for module_name in self.module_topology: #getattr: returns the value of the named attribute of an object.
             module, model_info_dict = getattr(self, 'build_%s' % module_name)(

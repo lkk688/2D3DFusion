@@ -2,6 +2,7 @@ from collections import defaultdict #when key not exist, return defaultdict not 
 from pathlib import Path
 
 import numpy as np
+import torch
 import torch.utils.data as torch_data
 
 from ..utils import common_utils
@@ -307,6 +308,8 @@ class DatasetTemplate(torch_data.Dataset):
                                 constant_values=pad_value)
                         points.append(points_pad)
                     ret[key] = np.stack(points, axis=0)
+                elif key in ['camera_imgs']:
+                    ret[key] = torch.stack([torch.stack(imgs,dim=0) for imgs in val],dim=0)
                 else:
                     ret[key] = np.stack(val, axis=0)
             except:

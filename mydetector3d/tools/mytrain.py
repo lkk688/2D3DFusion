@@ -37,6 +37,7 @@ from mydetector3d.models.detectors.second_net import SECONDNet
 from mydetector3d.models.detectors.voxelnext import VoxelNeXt
 from mydetector3d.models.detectors.my3dmodel import My3Dmodel
 from mydetector3d.models.detectors.my3dmodelv2 import My3Dmodelv2
+from mydetector3d.models.detectors.bevfusion import BevFusion
 __modelall__ = {
     #'Detector3DTemplate': Detector3DTemplate,
      'SECONDNet': SECONDNet,
@@ -45,7 +46,8 @@ __modelall__ = {
      'PointPillar': PointPillar,
      'My3Dmodel': My3Dmodel,
      'My3Dmodelv2': My3Dmodelv2,
-     'VoxelNeXt': VoxelNeXt
+     'VoxelNeXt': VoxelNeXt,
+     'BevFusion': BevFusion
 }
 
 from mydetector3d.datasets.kitti.kitti_dataset import KittiDataset
@@ -72,11 +74,11 @@ __datasetall__ = {
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/my3dmodelv2.yaml', help='specify the config for training')
-    parser.add_argument('--batch_size', type=int, default=4, required=False, help='batch size for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/mybevfusion.yaml', help='specify the config for training')
+    parser.add_argument('--batch_size', type=int, default=6, required=False, help='batch size for training')
     parser.add_argument('--epochs', type=int, default=128, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--extra_tag', type=str, default='0518conv', help='extra tag for this experiment')
+    parser.add_argument('--extra_tag', type=str, default='0518', help='extra tag for this experiment')
     parser.add_argument('--ckpt', type=str, default=None, help='checkpoint to start from')
     parser.add_argument('--outputfolder', type=str, default='/data/cmpe249-fa22/Mymodels', help='output folder path')
     parser.add_argument('--pretrained_model', type=str, default=None, help='pretrained_model')

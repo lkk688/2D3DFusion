@@ -181,9 +181,9 @@ class DepthLSSTransform(nn.Module):
                 spatial_features_img (tensor): bev features from image modality
         """
         x = batch_dict['image_fpn'] 
-        x = x[0]
+        x = x[0] #[6, 256, 32, 88]
         BN, C, H, W = x.size()
-        img = x.view(int(BN/6), 6, C, H, W)
+        img = x.view(int(BN/6), 6, C, H, W) #[1, 6, 256, 32, 88]
 
         camera_intrinsics = batch_dict['camera_intrinsics']
         camera2lidar = batch_dict['camera2lidar']
@@ -197,10 +197,10 @@ class DepthLSSTransform(nn.Module):
         camera2lidar_rots = camera2lidar[..., :3, :3]
         camera2lidar_trans = camera2lidar[..., :3, 3]
 
-        points = batch_dict['points']
+        points = batch_dict['points'] #[435266, 5]
 
         batch_size = BN // 6
-        depth = torch.zeros(batch_size, img.shape[1], 1, *self.image_size).to(points[0].device)
+        depth = torch.zeros(batch_size, img.shape[1], 1, *self.image_size).to(points[0].device) #[1, 6, 1, 256, 704]
 
         for b in range(batch_size):
             batch_mask = points[:,0] == b

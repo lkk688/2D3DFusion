@@ -99,6 +99,42 @@ def calib_to_matricies(calib):
     P2 = calib.P2
     return V2R, P2
 
+def inverse_rigid_trans(Tr):
+    """ Inverse a rigid body transform matrix (3x4 as [R|t])
+        [R'|-R't; 0|1]
+    """
+    inv_Tr = np.zeros_like(Tr)  # 3x4
+    inv_Tr[0:3, 0:3] = np.transpose(Tr[0:3, 0:3])
+    inv_Tr[0:3, 3] = np.dot(-np.transpose(Tr[0:3, 0:3]), Tr[0:3, 3])
+    return inv_Tr
+
+def calib_to_intrinsics(calib):
+    # Projection matrix from rect camera coord to image2 coord
+    P = calib.P2
+    P = np.reshape(P, [3, 4])
+    # Rigid transform from Velodyne coord to reference camera coord
+    V2C = calib.V2C #calibs["Tr_velo_to_cam"]
+    V2C = np.reshape(V2C, [3, 4])
+    C2V = inverse_rigid_trans(V2C)
+    C2V = np.vstack((C2V, np.array([0, 0, 0, 1], dtype=np.float32)))  # (4, 4)
+    # Rotation from reference camera coord to rect camera coord
+    R0 = calib.R0 #calibs["R0_rect"]
+    R0 = np.reshape(R0, [3, 3])
+
+    # Compute the camera intrinsics
+    intrinsics_cam2 = calib.P2[0:3, 0:3]
+    return C2V, R0, intrinsics_cam2
+
+    # Camera intrinsics and extrinsics
+    #cu, cv are optical centers in pixel coordinates
+    #fu, fv are camera focal lengths
+    # self.c_u = self.P[0, 2]
+    # self.c_v = self.P[1, 2]
+    # self.f_u = self.P[0, 0]
+    # self.f_v = self.P[1, 1]
+    # self.b_x = self.P[0, 3] / (-self.f_u)  # relative
+    # self.b_y = self.P[1, 3] / (-self.f_v)
+
 import pandas as pd
 import os
 from sklearn.model_selection import train_test_split

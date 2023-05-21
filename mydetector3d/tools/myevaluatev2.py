@@ -99,7 +99,7 @@ def load_data_to_device(batch_dict, device):
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/my3dmodelv2_compressor.yaml', help='specify the model config')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/mybevfusion.yaml', help='specify the model config')
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')

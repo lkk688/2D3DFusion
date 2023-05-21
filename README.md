@@ -79,7 +79,7 @@ Object instance is stored in fileid_label.txt : For each row, the annotation of 
 Some instances typeare marked as ‘DontCare’, indicating they are not labelled. The box dimensions are simply its width, length and height (w, l, h) and the coordinates of the center of the box (x, y, z). 
 
 In [Kitti Devkit](https://github.com/bostondiditeam/kitti/tree/master/resources/devkit_object), the full definition is
-![image](https://user-images.githubusercontent.com/6676586/111712784-91f98a00-880b-11eb-876d-353af30bbbf6.png)
+![image](https://user-images.githubusercontent.com/6676586/111712784-91f98a00-880b-11eb-876d-353af30bbbf6.png). [Kitti original paper](https://www.cvlibs.net/publications/Geiger2013IJRR.pdf)
 
 The difference between rotation_y (Rotation ry around Y-axis in camera coordinates [-pi..pi]) and alpha (Observation angle of object, ranging [-pi..pi]) is, that rotation_y is directly given in camera coordinates, while alpha also considers the vector from the camera center to the object center, to compute the relative orientation of the object with respect to the camera. 
 * For example, a car which is facing along the X-axis of the camera coordinate system corresponds to rotation_y=0, no matter where it is located in the X/Z plane (bird's eye view)

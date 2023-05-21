@@ -25,6 +25,13 @@ class DairKittiDataset(DatasetTemplate):
             dataset_cfg=dataset_cfg, class_names=class_names, training=training, root_path=root_path, logger=logger
         )
         self.split = self.dataset_cfg.DATA_SPLIT[self.mode]
+        self.camera_config = self.dataset_cfg.get('CAMERA_CONFIG', None)
+        if self.camera_config is not None:
+            self.use_camera = self.camera_config.get('USE_CAMERA', True)
+            self.camera_image_config = self.camera_config.IMAGE
+        else:
+            self.use_camera = False
+
         self.root_split_path = self.root_path / ('training' if self.split != 'test' else 'testing')
 
         split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
@@ -126,6 +133,50 @@ class DairKittiDataset(DatasetTemplate):
         image = image.astype(np.float32)
         image /= 255.0
         return image
+    
+    
+    def getandcrop_image(self, idx, input_dict):
+        from PIL import Image
+        img_file = self.root_split_path / 'image_2' / ('%s.jpg' % idx) #Kitti is 'image_2' .png
+        assert img_file.exists()
+        images = []
+        images.append(Image.open(str(img_file)))
+        input_dict["ori_shape"] = images[0].size
+        input_dict["camera_imgs"] = images
+
+        W, H = input_dict["ori_shape"]
+        imgs = input_dict["camera_imgs"]
+        img_process_infos = []
+        crop_images = []
+        for img in imgs:
+            if self.training == True:
+                fH, fW = self.camera_image_config.FINAL_DIM
+                resize_lim = self.camera_image_config.RESIZE_LIM_TRAIN
+                resize = np.random.uniform(*resize_lim)
+                resize_dims = (int(W * resize), int(H * resize))
+                newW, newH = resize_dims
+                crop_h = newH - fH
+                crop_w = int(np.random.uniform(0, max(0, newW - fW)))
+                crop = (crop_w, crop_h, crop_w + fW, crop_h + fH)
+            else:
+                fH, fW = self.camera_image_config.FINAL_DIM
+                resize_lim = self.camera_image_config.RESIZE_LIM_TEST
+                resize = np.mean(resize_lim)
+                resize_dims = (int(W * resize), int(H * resize))
+                newW, newH = resize_dims
+                crop_h = newH - fH
+                crop_w = int(max(0, newW - fW) / 2)
+                crop = (crop_w, crop_h, crop_w + fW, crop_h + fH)
+            
+            # reisze and crop image
+            img = img.resize(resize_dims)
+            img = img.crop(crop)
+            crop_images.append(img)
+            img_process_infos.append([resize, crop, False, 0])
+        
+        input_dict['img_process_infos'] = img_process_infos
+        input_dict['camera_imgs'] = crop_images
+        return input_dict
 
     def get_image_shape(self, idx):
         img_file = self.root_split_path / 'image_2' / ('%s.jpg' % idx)
@@ -466,6 +517,61 @@ class DairKittiDataset(DatasetTemplate):
 
         return len(self.kitti_infos)
 
+    def load_camera_info(self, input_dict, calib):
+        from pyquaternion import Quaternion
+        input_dict["image_paths"] = []
+        input_dict["lidar2camera"] = []
+        input_dict["lidar2image"] = []
+        input_dict["camera2ego"] = []
+        input_dict["camera_intrinsics"] = []
+        input_dict["camera2lidar"] = []
+
+        V2R_44, P2_34 = kitti_utils.calib_to_matricies(calib)
+        #return (4,4) (3,4)
+        C2V_44, R0_33, intrinsics_cam2_33 = kitti_utils.calib_to_intrinsics(calib)
+        input_dict["lidar2camera"].append(V2R_44)
+        camera_intrinsics = np.eye(4).astype(np.float32)
+        camera_intrinsics[:3, :3] = intrinsics_cam2_33
+        input_dict["camera_intrinsics"].append(camera_intrinsics)
+
+        # lidar to image transform
+        lidar2image = camera_intrinsics @ V2R_44.T #lidar2camera
+        input_dict["lidar2image"].append(lidar2image)
+
+         # camera to ego transform
+        camera2ego = np.eye(4).astype(np.float32)
+        input_dict["camera2ego"].append(camera2ego)
+
+        # camera to lidar transform
+        camera2lidar = np.eye(4).astype(np.float32)
+        input_dict["camera2lidar"].append(camera2lidar)
+
+        return input_dict
+
+    def set_lidar_aug_matrix(self, data_dict):
+        """
+            Get lidar augment matrix (4 x 4), which are used to recover orig point coordinates.
+        """
+        lidar_aug_matrix = np.eye(4)
+        if 'flip_y' in data_dict.keys():
+            flip_x = data_dict['flip_x']
+            flip_y = data_dict['flip_y']
+            if flip_x:
+                lidar_aug_matrix[:3,:3] = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) @ lidar_aug_matrix[:3,:3]
+            if flip_y:
+                lidar_aug_matrix[:3,:3] = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ lidar_aug_matrix[:3,:3]
+        if 'noise_rot' in data_dict.keys():
+            noise_rot = data_dict['noise_rot']
+            lidar_aug_matrix[:3,:3] = common_utils.angle2matrix(torch.tensor(noise_rot)) @ lidar_aug_matrix[:3,:3]
+        if 'noise_scale' in data_dict.keys():
+            noise_scale = data_dict['noise_scale']
+            lidar_aug_matrix[:3,:3] *= noise_scale
+        if 'noise_translate' in data_dict.keys():
+            noise_translate = data_dict['noise_translate']
+            lidar_aug_matrix[:3,3:4] = noise_translate.T
+        data_dict['lidar_aug_matrix'] = lidar_aug_matrix
+        return data_dict
+    
     def __getitem__(self, index):
         #print("get item: ", index)
         # index = 4
@@ -525,13 +631,16 @@ class DairKittiDataset(DatasetTemplate):
 
         if "images" in get_item_list:
             input_dict['images'] = self.get_image(sample_idx)
+            input_dict = self.getandcrop_image(sample_idx, input_dict)
 
         if "depth_maps" in get_item_list:
             input_dict['depth_maps'] = self.get_depth_map(sample_idx)
 
         if "calib_matricies" in get_item_list:
             input_dict["trans_lidar_to_cam"], input_dict["trans_cam_to_img"] = kitti_utils.calib_to_matricies(calib)
+            input_dict=self.load_camera_info(input_dict, calib)
 
+        input_dict = self.set_lidar_aug_matrix(input_dict)
         data_dict = self.prepare_data(data_dict=input_dict) #send input_dict to prepare_data to generate training data
 
         data_dict['image_shape'] = img_shape
