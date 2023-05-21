@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from ...ops.roiaware_pool3d import roiaware_pool3d_utils
-from ...utils import common_utils
-from ..dataset import DatasetTemplate
+from mydetector3d.ops.roiaware_pool3d import roiaware_pool3d_utils
+from mydetector3d.utils import common_utils
+from mydetector3d.datasets.dataset import DatasetTemplate
 from pyquaternion import Quaternion
 from PIL import Image
 
@@ -357,14 +357,14 @@ class NuScenesDataset(DatasetTemplate):
 def create_nuscenes_info(version, data_path, save_path, max_sweeps=10, with_cam=False):
     from nuscenes.nuscenes import NuScenes
     from nuscenes.utils import splits
-    from . import nuscenes_utils
-    data_path = data_path / version
+    from mydetector3d.datasets.nuscenes import nuscenes_utils
+    data_path = data_path # / version
     save_path = save_path / version
 
     assert version in ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
     if version == 'v1.0-trainval':
-        train_scenes = splits.train
-        val_scenes = splits.val
+        train_scenes = splits.train #700 scene
+        val_scenes = splits.val #150 scene
     elif version == 'v1.0-test':
         train_scenes = splits.test
         val_scenes = []
@@ -408,7 +408,7 @@ if __name__ == '__main__':
     from easydict import EasyDict
 
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default=None, help='specify the config of dataset')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/nuscenes_dataset.yaml', help='specify the config of dataset')
     parser.add_argument('--datapath', type=str, default='/data/cmpe249-fa22/nuScenes', help='specify the path of dataset')
     parser.add_argument('--func', type=str, default='create_nuscenes_infos', help='')
     parser.add_argument('--version', type=str, default='v1.0-trainval', help='')
@@ -417,7 +417,7 @@ if __name__ == '__main__':
 
     if args.func == 'create_nuscenes_infos':
         dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
-        #ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+        ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
         dataset_cfg.VERSION = args.version
         create_nuscenes_info(
             version=dataset_cfg.VERSION,
