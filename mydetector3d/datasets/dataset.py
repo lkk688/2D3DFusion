@@ -134,6 +134,30 @@ class DatasetTemplate(torch_data.Dataset):
         """
         raise NotImplementedError
 
+    def set_lidar_aug_matrix(self, data_dict):
+        """
+            Get lidar augment matrix (4 x 4), which are used to recover orig point coordinates.
+        """
+        lidar_aug_matrix = np.eye(4)
+        if 'flip_y' in data_dict.keys():
+            flip_x = data_dict['flip_x']
+            flip_y = data_dict['flip_y']
+            if flip_x:
+                lidar_aug_matrix[:3,:3] = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) @ lidar_aug_matrix[:3,:3]
+            if flip_y:
+                lidar_aug_matrix[:3,:3] = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ lidar_aug_matrix[:3,:3]
+        if 'noise_rot' in data_dict.keys():
+            noise_rot = data_dict['noise_rot']
+            lidar_aug_matrix[:3,:3] = common_utils.angle2matrix(torch.tensor(noise_rot)) @ lidar_aug_matrix[:3,:3]
+        if 'noise_scale' in data_dict.keys():
+            noise_scale = data_dict['noise_scale']
+            lidar_aug_matrix[:3,:3] *= noise_scale
+        if 'noise_translate' in data_dict.keys():
+            noise_translate = data_dict['noise_translate']
+            lidar_aug_matrix[:3,3:4] = noise_translate.T
+        data_dict['lidar_aug_matrix'] = lidar_aug_matrix
+        return data_dict
+    
     def prepare_data(self, data_dict):
         """
         Args:
@@ -170,7 +194,7 @@ class DatasetTemplate(torch_data.Dataset):
             )
             if 'calib' in data_dict:
                 data_dict['calib'] = calib
-        
+        data_dict = self.set_lidar_aug_matrix(data_dict)
         #Filter gt_boxes
         if data_dict.get('gt_boxes', None) is not None:
             #return gt_names with class_name in class_names, do not need others
@@ -309,8 +333,13 @@ class DatasetTemplate(torch_data.Dataset):
                         points.append(points_pad)
                     ret[key] = np.stack(points, axis=0)
                 elif key in ['camera_imgs']:
+                    # getarray = [torch.stack(imgs,dim=0) for imgs in val]
+                    # ret[key] = torch.stack(getarray,dim=0)
                     ret[key] = torch.stack([torch.stack(imgs,dim=0) for imgs in val],dim=0)
-                else:
+                elif key in ['img_process_infos']: #new add
+                    arrays = np.asarray(val,dtype=object)
+                    ret[key] = np.stack(arrays, axis=0)
+                else: #img_process_infos 4 elements, each element is (6,4)
                     ret[key] = np.stack(val, axis=0)
             except:
                 print('Error in collate_batch: key=%s' % key)

@@ -18,12 +18,6 @@ INFO_PATH: {
 }
 
 POINT_CLOUD_RANGE: [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-CAMERA_CONFIG:
-        USE_CAMERA: True
-        IMAGE:
-            FINAL_DIM: [256,704]
-            RESIZE_LIM_TRAIN: [0.38, 0.55]
-            RESIZE_LIM_TEST: [0.48, 0.48]
 
 BALANCED_RESAMPLING: True 
 
@@ -84,9 +78,3 @@ DATA_PROCESSOR:
         'train': 60000,
         'test': 60000
       }
-    
-    - NAME: image_calibrate
-        
-    - NAME: image_normalize
-      mean: [0.485, 0.456, 0.406]
-      std: [0.229, 0.224, 0.225]

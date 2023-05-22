@@ -13,6 +13,7 @@ from .second_net import SECONDNet
 # from .mppnet_e2e import MPPNetE2E
 # from .pillarnet import PillarNet
 from .voxelnext import VoxelNeXt
+from .bevfusion import BevFusion
 from mydetector3d.models.detectors.my3dmodel import My3Dmodel
 __all__ = {
     #'Detector3DTemplate': Detector3DTemplate,
@@ -31,7 +32,8 @@ __all__ = {
     # 'MPPNet': MPPNet,
     # 'MPPNetE2E': MPPNetE2E,
     # 'PillarNet': PillarNet,
-    'VoxelNeXt': VoxelNeXt
+    'VoxelNeXt': VoxelNeXt,
+    'BevFusion': BevFusion,
 }
 
 

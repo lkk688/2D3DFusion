@@ -54,7 +54,8 @@ from nuscenes.utils.splits import create_splits_logs
 
 class KittiConverter:
     def __init__(self,
-                 nusc_kitti_dir: str = '~/nusc_kitti',
+                 nusc_kitti_dir: str = '/data/cmpe249-fa22/nuScenes/nusc_kitti',
+                 nuscenes_root_dir: str = '/data/cmpe249-fa22/nuScenes/',
                  cam_name: str = 'CAM_FRONT',
                  lidar_name: str = 'LIDAR_TOP',
                  image_count: int = 10,
@@ -68,7 +69,7 @@ class KittiConverter:
         :param nusc_version: nuScenes version to use.
         :param split: Dataset split to use.
         """
-        self.nusc_kitti_dir = os.path.expanduser(nusc_kitti_dir)
+        self.nusc_kitti_dir = os.path.expanduser(nusc_kitti_dir) #an initial ~ is replaced by the value of HOME environment variable
         self.cam_name = cam_name
         self.lidar_name = lidar_name
         self.image_count = image_count
@@ -80,7 +81,7 @@ class KittiConverter:
             os.makedirs(self.nusc_kitti_dir)
 
         # Select subset of the data to look at.
-        self.nusc = NuScenes(version=nusc_version)
+        self.nusc = NuScenes(version=nusc_version, dataroot=nuscenes_root_dir) #add dataroot
 
     def nuscenes_gt_to_kitti(self) -> None:
         """
@@ -105,7 +106,7 @@ class KittiConverter:
                 os.makedirs(folder)
 
         # Use only the samples from the current split.
-        sample_tokens = self._split_to_samples(split_logs)
+        sample_tokens = self._split_to_samples(split_logs) #get all tokens
         sample_tokens = sample_tokens[:self.image_count]
 
         tokens = []
@@ -295,7 +296,7 @@ class KittiConverter:
         split_logs = create_splits_logs(self.split, self.nusc)
 
         # Use only the samples from the current split.
-        sample_tokens = self._split_to_samples(split_logs)
+        sample_tokens = self._split_to_samples(split_logs) #get all tokens
         sample_tokens = sample_tokens[:self.image_count]
 
         for sample_token in sample_tokens:

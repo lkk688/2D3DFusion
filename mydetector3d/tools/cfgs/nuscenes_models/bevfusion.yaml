@@ -2,7 +2,7 @@ CLASS_NAMES: ['car','truck', 'construction_vehicle', 'bus', 'trailer',
               'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/nuscenes_dataset.yaml
+    _BASE_CONFIG_: mydetector3d/tools/cfgs/dataset_configs/nuscenes_dataset.yaml
     POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
     CAMERA_CONFIG:
         USE_CAMERA: True
@@ -85,7 +85,7 @@ MODEL:
         CONVERT_WEIGHTS: True
         INIT_CFG:
             type: Pretrained
-            checkpoint: swint-nuimages-pretrained.pth
+            checkpoint: /data/cmpe249-fa22/Mymodels/swint-nuimages-pretrained.pth
     
     NECK:
         NAME: GeneralizedLSSFPN

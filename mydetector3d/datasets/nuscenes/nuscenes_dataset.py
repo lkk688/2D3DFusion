@@ -14,7 +14,8 @@ from PIL import Image
 
 class NuScenesDataset(DatasetTemplate):
     def __init__(self, dataset_cfg, class_names, training=True, root_path=None, logger=None):
-        root_path = (root_path if root_path is not None else Path(dataset_cfg.DATA_PATH)) / dataset_cfg.VERSION
+        root_path = (root_path if root_path is not None else Path(
+            dataset_cfg.DATA_PATH)) / dataset_cfg.VERSION
         super().__init__(
             dataset_cfg=dataset_cfg, class_names=class_names, training=training, root_path=root_path, logger=logger
         )
@@ -43,7 +44,8 @@ class NuScenesDataset(DatasetTemplate):
                 nuscenes_infos.extend(infos)
 
         self.infos.extend(nuscenes_infos)
-        self.logger.info('Total samples for NuScenes dataset: %d' % (len(nuscenes_infos)))
+        self.logger.info('Total samples for NuScenes dataset: %d' %
+                         (len(nuscenes_infos)))
 
     def balanced_infos_resampling(self, infos):
         """
@@ -59,7 +61,8 @@ class NuScenesDataset(DatasetTemplate):
                     cls_infos[name].append(info)
 
         duplicated_samples = sum([len(v) for _, v in cls_infos.items()])
-        cls_dist = {k: len(v) / duplicated_samples for k, v in cls_infos.items()}
+        cls_dist = {k: len(v) / duplicated_samples for k,
+                    v in cls_infos.items()}
 
         sampled_infos = []
 
@@ -70,7 +73,8 @@ class NuScenesDataset(DatasetTemplate):
             sampled_infos += np.random.choice(
                 cur_cls_infos, int(len(cur_cls_infos) * ratio)
             ).tolist()
-        self.logger.info('Total samples after balanced resampling: %s' % (len(sampled_infos)))
+        self.logger.info(
+            'Total samples after balanced resampling: %s' % (len(sampled_infos)))
 
         cls_infos_new = {name: [] for name in self.class_names}
         for info in sampled_infos:
@@ -78,43 +82,50 @@ class NuScenesDataset(DatasetTemplate):
                 if name in self.class_names:
                     cls_infos_new[name].append(info)
 
-        cls_dist_new = {k: len(v) / len(sampled_infos) for k, v in cls_infos_new.items()}
+        cls_dist_new = {k: len(v) / len(sampled_infos)
+                        for k, v in cls_infos_new.items()}
 
         return sampled_infos
 
     def get_sweep(self, sweep_info):
         def remove_ego_points(points, center_radius=1.0):
-            mask = ~((np.abs(points[:, 0]) < center_radius) & (np.abs(points[:, 1]) < center_radius))
+            mask = ~((np.abs(points[:, 0]) < center_radius) & (
+                np.abs(points[:, 1]) < center_radius))
             return points[mask]
 
         lidar_path = self.root_path / sweep_info['lidar_path']
-        points_sweep = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
+        points_sweep = np.fromfile(
+            str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
         points_sweep = remove_ego_points(points_sweep).T
         if sweep_info['transform_matrix'] is not None:
             num_points = points_sweep.shape[1]
             points_sweep[:3, :] = sweep_info['transform_matrix'].dot(
                 np.vstack((points_sweep[:3, :], np.ones(num_points))))[:3, :]
 
-        cur_times = sweep_info['time_lag'] * np.ones((1, points_sweep.shape[1]))
+        cur_times = sweep_info['time_lag'] * \
+            np.ones((1, points_sweep.shape[1]))
         return points_sweep.T, cur_times.T
 
     def get_lidar_with_sweeps(self, index, max_sweeps=1):
         info = self.infos[index]
         lidar_path = self.root_path / info['lidar_path']
-        points = np.fromfile(str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
+        points = np.fromfile(str(lidar_path), dtype=np.float32,
+                             count=-1).reshape([-1, 5])[:, :4]
 
-        sweep_points_list = [points] #(34720, 4)
+        sweep_points_list = [points]  # (34720, 4)
         sweep_times_list = [np.zeros((points.shape[0], 1))]
 
         for k in np.random.choice(len(info['sweeps']), max_sweeps - 1, replace=False):
             points_sweep, times_sweep = self.get_sweep(info['sweeps'][k])
-            sweep_points_list.append(points_sweep) #(25005, 4)
+            sweep_points_list.append(points_sweep)  # (25005, 4)
             sweep_times_list.append(times_sweep)
 
-        points = np.concatenate(sweep_points_list, axis=0)#size 10 array to (259765, 4)
-        times = np.concatenate(sweep_times_list, axis=0).astype(points.dtype) #(259765, 1)
+        # size 10 array to (259765, 4)
+        points = np.concatenate(sweep_points_list, axis=0)
+        times = np.concatenate(sweep_times_list, axis=0).astype(
+            points.dtype)  # (259765, 1)
 
-        points = np.concatenate((points, times), axis=1) #(259765, 5)
+        points = np.concatenate((points, times), axis=1)  # (259765, 5)
         return points
 
     def crop_image(self, input_dict):
@@ -141,17 +152,17 @@ class NuScenesDataset(DatasetTemplate):
                 crop_h = newH - fH
                 crop_w = int(max(0, newW - fW) / 2)
                 crop = (crop_w, crop_h, crop_w + fW, crop_h + fH)
-            
+
             # reisze and crop image
             img = img.resize(resize_dims)
             img = img.crop(crop)
             crop_images.append(img)
             img_process_infos.append([resize, crop, False, 0])
-        
+
         input_dict['img_process_infos'] = img_process_infos
         input_dict['camera_imgs'] = crop_images
         return input_dict
-    
+
     def load_camera_info(self, input_dict, info):
         input_dict["image_paths"] = []
         input_dict["lidar2camera"] = []
@@ -164,7 +175,8 @@ class NuScenesDataset(DatasetTemplate):
             input_dict["image_paths"].append(camera_info["data_path"])
 
             # lidar to camera transform
-            lidar2camera_r = np.linalg.inv(camera_info["sensor2lidar_rotation"])
+            lidar2camera_r = np.linalg.inv(
+                camera_info["sensor2lidar_rotation"])
             lidar2camera_t = (
                 camera_info["sensor2lidar_translation"] @ lidar2camera_r.T
             )
@@ -179,8 +191,8 @@ class NuScenesDataset(DatasetTemplate):
             input_dict["camera_intrinsics"].append(camera_intrinsics)
 
             # lidar to image transform
-            lidar2image = camera_intrinsics @ lidar2camera_rt.T
-            input_dict["lidar2image"].append(lidar2image)
+            lidar2image = camera_intrinsics @ lidar2camera_rt.T #(4,4)
+            input_dict["lidar2image"].append(lidar2image) 
 
             # camera to ego transform
             camera2ego = np.eye(4).astype(np.float32)
@@ -200,12 +212,12 @@ class NuScenesDataset(DatasetTemplate):
         images = []
         for name in filename:
             images.append(Image.open(str(self.root_path / name)))
-        
+
         input_dict["camera_imgs"] = images
-        input_dict["ori_shape"] = images[0].size
-        
+        input_dict["ori_shape"] = images[0].size #(1600, 900)
+
         # resize and crop image
-        input_dict = self.crop_image(input_dict)
+        input_dict = self.crop_image(input_dict) #image size: (704, 256)
 
         return input_dict
 
@@ -220,23 +232,25 @@ class NuScenesDataset(DatasetTemplate):
             index = index % len(self.infos)
 
         info = copy.deepcopy(self.infos[index])
-        points = self.get_lidar_with_sweeps(index, max_sweeps=self.dataset_cfg.MAX_SWEEPS)
+        points = self.get_lidar_with_sweeps(
+            index, max_sweeps=self.dataset_cfg.MAX_SWEEPS)
 
         input_dict = {
-            'points': points,
+            'points': points, #(270311, 5)
             'frame_id': Path(info['lidar_path']).stem,
             'metadata': {'token': info['token']}
         }
 
         if 'gt_boxes' in info:
             if self.dataset_cfg.get('FILTER_MIN_POINTS_IN_GT', False):
-                mask = (info['num_lidar_pts'] > self.dataset_cfg.FILTER_MIN_POINTS_IN_GT - 1)
+                mask = (info['num_lidar_pts'] >
+                        self.dataset_cfg.FILTER_MIN_POINTS_IN_GT - 1)
             else:
                 mask = None
 
             input_dict.update({
-                'gt_names': info['gt_names'] if mask is None else info['gt_names'][mask],
-                'gt_boxes': info['gt_boxes'] if mask is None else info['gt_boxes'][mask]
+                'gt_names': info['gt_names'] if mask is None else info['gt_names'][mask], 
+                'gt_boxes': info['gt_boxes'] if mask is None else info['gt_boxes'][mask] #(18, 9)
             })
         if self.use_camera:
             input_dict = self.load_camera_info(input_dict, info)
@@ -249,7 +263,8 @@ class NuScenesDataset(DatasetTemplate):
             data_dict['gt_boxes'] = gt_boxes
 
         if not self.dataset_cfg.PRED_VELOCITY and 'gt_boxes' in data_dict:
-            data_dict['gt_boxes'] = data_dict['gt_boxes'][:, [0, 1, 2, 3, 4, 5, 6, -1]]
+            data_dict['gt_boxes'] = data_dict['gt_boxes'][:,
+                                                          [0, 1, 2, 3, 4, 5, 6, -1]]
 
         return data_dict
 
@@ -257,8 +272,10 @@ class NuScenesDataset(DatasetTemplate):
         import json
         from nuscenes.nuscenes import NuScenes
         from . import nuscenes_utils
-        nusc = NuScenes(version=self.dataset_cfg.VERSION, dataroot=str(self.root_path), verbose=True)
-        nusc_annos = nuscenes_utils.transform_det_annos_to_nusc_annos(det_annos, nusc)
+        nusc = NuScenes(version=self.dataset_cfg.VERSION,
+                        dataroot=str(self.root_path), verbose=True)
+        nusc_annos = nuscenes_utils.transform_det_annos_to_nusc_annos(
+            det_annos, nusc)
         nusc_annos['meta'] = {
             'use_camera': False,
             'use_lidar': True,
@@ -273,7 +290,8 @@ class NuScenesDataset(DatasetTemplate):
         with open(res_path, 'w') as f:
             json.dump(nusc_annos, f)
 
-        self.logger.info(f'The predictions of NuScenes have been saved to {res_path}')
+        self.logger.info(
+            f'The predictions of NuScenes have been saved to {res_path}')
 
         if self.dataset_cfg.VERSION == 'v1.0-test':
             return 'No ground-truth annotations for evaluation', {}
@@ -306,14 +324,17 @@ class NuScenesDataset(DatasetTemplate):
         with open(output_path / 'metrics_summary.json', 'r') as f:
             metrics = json.load(f)
 
-        result_str, result_dict = nuscenes_utils.format_nuscene_results(metrics, self.class_names, version=eval_version)
+        result_str, result_dict = nuscenes_utils.format_nuscene_results(
+            metrics, self.class_names, version=eval_version)
         return result_str, result_dict
 
     def create_groundtruth_database(self, used_classes=None, max_sweeps=10):
         import torch
 
-        database_save_path = self.root_path / f'gt_database_{max_sweeps}sweeps_withvelo'
-        db_info_save_path = self.root_path / f'nuscenes_dbinfos_{max_sweeps}sweeps_withvelo.pkl'
+        database_save_path = self.root_path / \
+            f'gt_database_{max_sweeps}sweeps_withvelo'
+        db_info_save_path = self.root_path / \
+            f'nuscenes_dbinfos_{max_sweeps}sweeps_withvelo.pkl'
 
         database_save_path.mkdir(parents=True, exist_ok=True)
         all_db_infos = {}
@@ -321,26 +342,33 @@ class NuScenesDataset(DatasetTemplate):
         for idx in tqdm(range(len(self.infos))):
             sample_idx = idx
             info = self.infos[idx]
-            points = self.get_lidar_with_sweeps(idx, max_sweeps=max_sweeps) #(259765, 5) last column is time
-            gt_boxes = info['gt_boxes'] #(10, 9)
-            gt_names = info['gt_names'] #(10,)
+            # (259765, 5) last column is time
+            points = self.get_lidar_with_sweeps(idx, max_sweeps=max_sweeps)
+            gt_boxes = info['gt_boxes']  # (10, 9)
+            gt_names = info['gt_names']  # (10,)
 
             box_idxs_of_pts = roiaware_pool3d_utils.points_in_boxes_gpu(
-                torch.from_numpy(points[:, 0:3]).unsqueeze(dim=0).float().cuda(),
-                torch.from_numpy(gt_boxes[:, 0:7]).unsqueeze(dim=0).float().cuda()
-            ).long().squeeze(dim=0).cpu().numpy() #(259765,)
+                torch.from_numpy(points[:, 0:3]).unsqueeze(
+                    dim=0).float().cuda(),
+                torch.from_numpy(gt_boxes[:, 0:7]).unsqueeze(
+                    dim=0).float().cuda()
+            ).long().squeeze(dim=0).cpu().numpy()  # (259765,)
 
-            for i in range(gt_boxes.shape[0]):#for 10 gt objects
-                filename = '%s_%s_%d.bin' % (sample_idx, gt_names[i], i) #0_traffic_cone_0.bin 
+            for i in range(gt_boxes.shape[0]):  # for 10 gt objects
+                filename = '%s_%s_%d.bin' % (
+                    sample_idx, gt_names[i], i)  # 0_traffic_cone_0.bin
                 filepath = database_save_path / filename
-                gt_points = points[box_idxs_of_pts == i] #(20, 5)
+                gt_points = points[box_idxs_of_pts == i]  # (20, 5)
 
-                gt_points[:, :3] -= gt_boxes[i, :3] #get relative xyz for gt_points
+                # get relative xyz for gt_points
+                gt_points[:, :3] -= gt_boxes[i, :3]
                 with open(filepath, 'w') as f:
                     gt_points.tofile(f)
 
-                if (used_classes is None) or gt_names[i] in used_classes: #used_classes is None
-                    db_path = str(filepath.relative_to(self.root_path))  # gt_database/xxxxx.bin
+                # used_classes is None
+                if (used_classes is None) or gt_names[i] in used_classes:
+                    # gt_database/xxxxx.bin
+                    db_path = str(filepath.relative_to(self.root_path))
                     db_info = {'name': gt_names[i], 'path': db_path, 'image_idx': sample_idx, 'gt_idx': i,
                                'box3d_lidar': gt_boxes[i], 'num_points_in_gt': gt_points.shape[0]}
                     if gt_names[i] in all_db_infos:
@@ -358,13 +386,13 @@ def create_nuscenes_info(version, data_path, save_path, max_sweeps=10, with_cam=
     from nuscenes.nuscenes import NuScenes
     from nuscenes.utils import splits
     from mydetector3d.datasets.nuscenes import nuscenes_utils
-    data_path = data_path  / version
+    data_path = data_path / version
     save_path = save_path / version
 
     assert version in ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
     if version == 'v1.0-trainval':
-        train_scenes = splits.train #700 scene
-        val_scenes = splits.val #150 scene
+        train_scenes = splits.train  # 700 scene
+        val_scenes = splits.val  # 150 scene
     elif version == 'v1.0-test':
         train_scenes = splits.test
         val_scenes = []
@@ -377,12 +405,16 @@ def create_nuscenes_info(version, data_path, save_path, max_sweeps=10, with_cam=
     nusc = NuScenes(version=version, dataroot=data_path, verbose=True)
     available_scenes = nuscenes_utils.get_available_scenes(nusc)
     available_scene_names = [s['name'] for s in available_scenes]
-    train_scenes = list(filter(lambda x: x in available_scene_names, train_scenes))
+    train_scenes = list(
+        filter(lambda x: x in available_scene_names, train_scenes))
     val_scenes = list(filter(lambda x: x in available_scene_names, val_scenes))
-    train_scenes = set([available_scenes[available_scene_names.index(s)]['token'] for s in train_scenes])
-    val_scenes = set([available_scenes[available_scene_names.index(s)]['token'] for s in val_scenes])
+    train_scenes = set(
+        [available_scenes[available_scene_names.index(s)]['token'] for s in train_scenes])
+    val_scenes = set(
+        [available_scenes[available_scene_names.index(s)]['token'] for s in val_scenes])
 
-    print('%s: train scene(%d), val scene(%d)' % (version, len(train_scenes), len(val_scenes)))
+    print('%s: train scene(%d), val scene(%d)' %
+          (version, len(train_scenes), len(val_scenes)))
 
     train_nusc_infos, val_nusc_infos = nuscenes_utils.fill_trainval_infos(
         data_path=data_path, nusc=nusc, train_scenes=train_scenes, val_scenes=val_scenes,
@@ -394,7 +426,8 @@ def create_nuscenes_info(version, data_path, save_path, max_sweeps=10, with_cam=
         with open(save_path / f'nuscenes_infos_{max_sweeps}sweeps_test.pkl', 'wb') as f:
             pickle.dump(train_nusc_infos, f)
     else:
-        print('train sample: %d, val sample: %d' % (len(train_nusc_infos), len(val_nusc_infos)))
+        print('train sample: %d, val sample: %d' %
+              (len(train_nusc_infos), len(val_nusc_infos)))
         with open(save_path / f'nuscenes_infos_{max_sweeps}sweeps_train.pkl', 'wb') as f:
             pickle.dump(train_nusc_infos, f)
         with open(save_path / f'nuscenes_infos_{max_sweeps}sweeps_val.pkl', 'wb') as f:
@@ -408,10 +441,14 @@ if __name__ == '__main__':
     from easydict import EasyDict
 
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/nuscenes_dataset.yaml', help='specify the config of dataset')
-    parser.add_argument('--datapath', type=str, default='/data/cmpe249-fa22/nuScenes', help='specify the path of dataset')
-    parser.add_argument('--func', type=str, default='create_groundtruth', help='')
-    parser.add_argument('--version', type=str, default='v1.0-trainval', help='')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/nuscenes_dataset.yaml',
+                        help='specify the config of dataset')
+    parser.add_argument('--datapath', type=str,
+                        default='/data/cmpe249-fa22/nuScenes', help='specify the path of dataset')
+    parser.add_argument('--func', type=str,
+                        default='test_dataset', help='')
+    parser.add_argument('--version', type=str,
+                        default='v1.0-trainval', help='')
     parser.add_argument('--with_cam', default=True, help='use camera or not')
     args = parser.parse_args()
     dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
@@ -432,4 +469,21 @@ if __name__ == '__main__':
             root_path=Path(args.datapath),
             logger=common_utils.create_logger(), training=True
         )
-        nuscenes_dataset.create_groundtruth_database(max_sweeps=dataset_cfg.MAX_SWEEPS)
+        nuscenes_dataset.create_groundtruth_database(
+            max_sweeps=dataset_cfg.MAX_SWEEPS)
+    elif args.func == 'test_dataset':
+        from torch.utils.data import DataLoader
+        modelcfg_file='mydetector3d/tools/cfgs/nuscenes_models/bevfusion.yaml'
+        cfg = EasyDict(yaml.safe_load(open(modelcfg_file)))
+        datasetcfg=cfg.DATA_CONFIG
+
+        nuclass_names = ['car', 'truck', 'construction_vehicle', 'bus', 'trailer',
+                         'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone']  # ignore
+        nuscenes_dataset = NuScenesDataset(dataset_cfg=dataset_cfg, class_names=nuclass_names, training=True, root_path=Path(
+            args.datapath), logger=common_utils.create_logger())
+        dataloader = DataLoader(nuscenes_dataset, batch_size=4, pin_memory=True, num_workers=1, shuffle=None,
+                            collate_fn=nuscenes_dataset.collate_batch, drop_last=False, sampler=None, timeout=0, worker_init_fn=None)
+        print("dataloader len:", len(dataloader)) #30895
+        iterator = iter(dataloader)
+        onebatch = next(iterator)
+        print(onebatch)
