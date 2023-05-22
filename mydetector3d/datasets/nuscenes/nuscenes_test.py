@@ -22,5 +22,17 @@ if __name__ == '__main__':
     nusc.list_scenes() #1000 scenes, 20s each
     #get one scene
     my_scene = nusc.scene[0]
-    #
-    first_sample_token = my_scene['first_sample_token']
+    #sample (annotated keyframe) is annotated 2Hz
+    first_sample_token = my_scene['first_sample_token'] #'ca9a282c9e77460f8360f564131a8af5'
+    #rendering
+    nusc.render_sample(first_sample_token)
+    #get sample's metadata
+    my_sample = nusc.get('sample', first_sample_token) #dict
+    #list all related sample_data keyframes and sample_annotation associated with a sample
+    nusc.list_sample(my_sample['token'])
+    #use data key to access full sensor data
+    print(my_sample['data'])
+    #check the metadata of a sample_data from CAM_FRONT
+    sensor = 'CAM_FRONT'
+    cam_front_data = nusc.get('sample_data', my_sample['data'][sensor])
+    cam_front_data
