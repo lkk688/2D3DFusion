@@ -10,24 +10,24 @@ DATA_CONFIG:
             RESIZE_LIM_TRAIN: [0.38, 0.55]
             RESIZE_LIM_TEST: [0.48, 0.48]
 
-    # DATA_AUGMENTOR:
-    #     DISABLE_AUG_LIST: ['placeholder']
-    #     AUG_CONFIG_LIST:
-    #         - NAME: random_world_flip
-    #           ALONG_AXIS_LIST: ['x', 'y']
+    DATA_AUGMENTOR:
+        DISABLE_AUG_LIST: ['placeholder']
+        AUG_CONFIG_LIST:
+            - NAME: random_world_flip
+              ALONG_AXIS_LIST: ['x', 'y']
 
-    #         - NAME: random_world_rotation
-    #           WORLD_ROT_ANGLE: [-0.78539816, 0.78539816]
+            - NAME: random_world_rotation
+              WORLD_ROT_ANGLE: [-0.78539816, 0.78539816]
 
-    #         - NAME: random_world_scaling
-    #           WORLD_SCALE_RANGE: [0.9, 1.1]
+            - NAME: random_world_scaling
+              WORLD_SCALE_RANGE: [0.9, 1.1]
 
-    #         - NAME: random_world_translation
-    #           NOISE_TRANSLATE_STD: [0.5, 0.5, 0.5]
+            - NAME: random_world_translation
+              NOISE_TRANSLATE_STD: [0.5, 0.5, 0.5]
             
-    #         - NAME: imgaug
-    #           ROT_LIM: [-5.4, 5.4]
-    #           RAND_FLIP: True
+            - NAME: imgaug
+              ROT_LIM: [-5.4, 5.4]
+              RAND_FLIP: True
 
     DATA_PROCESSOR:
         - NAME: mask_points_and_boxes_outside_range
@@ -40,7 +40,7 @@ DATA_CONFIG:
           }
 
         - NAME: transform_points_to_voxels
-          VOXEL_SIZE: [0.075, 0.075, 0.2]
+          VOXEL_SIZE: [0.075, 0.075, 0.2] #[ 0.32, 0.32, 6.0 ]
           MAX_POINTS_PER_VOXEL: 10
           MAX_NUMBER_OF_VOXELS: {
             'train': 120000,

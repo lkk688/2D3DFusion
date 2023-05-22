@@ -197,7 +197,7 @@ class DepthLSSTransform(nn.Module):
         camera2lidar_rots = camera2lidar[..., :3, :3]
         camera2lidar_trans = camera2lidar[..., :3, 3]
 
-        points = batch_dict['points'] #[435266, 5]
+        points = batch_dict['points'] #[435266, 5] [1456967, 6]
 
         batch_size = BN // 6
         depth = torch.zeros(batch_size, img.shape[1], 1, *self.image_size).to(points[0].device) #[1, 6, 1, 256, 704]

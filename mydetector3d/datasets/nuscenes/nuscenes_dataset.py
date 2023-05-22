@@ -475,7 +475,7 @@ if __name__ == '__main__':
         from torch.utils.data import DataLoader
         modelcfg_file='mydetector3d/tools/cfgs/nuscenes_models/bevfusion.yaml'
         cfg = EasyDict(yaml.safe_load(open(modelcfg_file)))
-        datasetcfg=cfg.DATA_CONFIG
+        datasetcfg=cfg #cfg.DATA_CONFIG
 
         nuclass_names = ['car', 'truck', 'construction_vehicle', 'bus', 'trailer',
                          'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone']  # ignore

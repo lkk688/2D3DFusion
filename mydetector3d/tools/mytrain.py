@@ -22,7 +22,7 @@ from torch.utils.data import DistributedSampler as DistributedSampler
 #.tools.train_utils import train_model
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "3" #"0,1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "1" #"0,1"
 
 #output/kitti_models/pointpillar/0413/ckpt/checkpoint_epoch_128.pth
 #/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth
@@ -73,11 +73,11 @@ __datasetall__ = {
 
 #'mydetector3d/tools/cfgs/waymokitti_models/second.yaml'
 #'mydetector3d/tools/cfgs/waymo_models/mysecond.yaml
-
+#'mydetector3d/tools/cfgs/dairkitti_models/mybevfusion.yaml'
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/nuscenes_models/cbgs_pp_multihead.yaml', help='specify the config for training')
-    parser.add_argument('--batch_size', type=int, default=4, required=False, help='batch size for training')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/nuscenes_models/bevfusion.yaml', help='specify the config for training')
+    parser.add_argument('--batch_size', type=int, default=6, required=False, help='batch size for training')
     parser.add_argument('--epochs', type=int, default=128, required=False, help='number of epochs to train for')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
     parser.add_argument('--extra_tag', type=str, default='0522', help='extra tag for this experiment')

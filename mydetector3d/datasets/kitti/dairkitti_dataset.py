@@ -1,6 +1,6 @@
 import copy
 import pickle
-
+import torch
 import numpy as np
 from skimage import io
 import json
@@ -367,7 +367,6 @@ class DairKittiDataset(DatasetTemplate):
 
     #use groundtruth in trainfile to generate groundtruth_database folder
     def create_groundtruth_database(self, info_path=None, used_classes=None, split='train'):
-        import torch
         #create gt_database folder
         database_save_path = Path(self.root_path) / ('gt_database' if split == 'train' else ('gt_database_%s' % split))
         #save kitti_dbinfos_train file under kitti folder
