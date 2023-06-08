@@ -13,6 +13,60 @@ from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
+from PIL import Image
+
+
+def read_image(path_img, img_plot=True):
+    img = np.asarray(Image.open(path_img)) #use Pillow to open an image (with PIL.Image.open), and immediately convert the PIL.Image.Image object into an 8-bit (dtype=uint8) numpy array.
+    if img_plot == True:
+        plt.figure(figsize=(10,6))
+        imgplot = plt.imshow(img)
+        # lum_img = img[:, :, 0]
+        # plt.hist(lum_img.ravel(), bins=range(256), fc='k', ec='k')
+    return img
+
+def read_label_bboxes(label_path):
+    with open(label_path, "r") as load_f:
+        labels = json.load(load_f)
+
+    boxes = []
+    for label in labels:
+        obj_size = [
+            float(label["3d_dimensions"]["l"]),
+            float(label["3d_dimensions"]["w"]),
+            float(label["3d_dimensions"]["h"]),
+        ]
+        yaw_lidar = float(label["rotation"])
+        center_lidar = [
+            float(label["3d_location"]["x"]),
+            float(label["3d_location"]["y"]),
+            float(label["3d_location"]["z"]),
+        ]
+
+        box = get_lidar_3d_8points(obj_size, yaw_lidar, center_lidar)
+        boxes.append(box)
+
+    return boxes
+
+def get_lidar_3d_8points(obj_size, yaw_lidar, center_lidar):
+    center_lidar = [center_lidar[0], center_lidar[1], center_lidar[2]]
+
+    lidar_r = np.matrix(
+        [[math.cos(yaw_lidar), -math.sin(yaw_lidar), 0], [math.sin(yaw_lidar), math.cos(yaw_lidar), 0], [0, 0, 1]]
+    )
+    l, w, h = obj_size
+    center_lidar[2] = center_lidar[2] - h / 2
+    corners_3d_lidar = np.matrix(
+        [
+            [l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2],
+            [w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2],
+            [0, 0, 0, 0, h, h, h, h],
+        ]
+    )
+    corners_3d_lidar = lidar_r * corners_3d_lidar + np.matrix(center_lidar).T
+
+    return corners_3d_lidar.T
+
 def read_json(path_json):
     with open(path_json, "r") as load_f:
         my_json = json.load(load_f)
@@ -149,14 +203,62 @@ def draw_pcd(points, gt_boxes=None, ref_boxes=None, ref_labels=None, ref_scores=
     else:
         pts.colors = o3d.utility.Vector3dVector(point_colors) #[1, 0, 0] is red
 
-    # if gt_boxes is not None:
-    #     vis = draw_box(vis, gt_boxes, (0, 0, 1))
+    if gt_boxes is not None:
+        vis = draw_box(vis, gt_boxes, (0, 0, 1))
 
     # if ref_boxes is not None:
     #     vis = draw_box(vis, ref_boxes, (0, 1, 0), ref_labels, ref_scores)
 
     vis.run()
     vis.destroy_window()
+
+def translate_boxes_to_open3d_instance(gt_boxes):
+    """
+             4-------- 6
+           /|         /|
+          5 -------- 3 .
+          | |        | |
+          . 7 -------- 1
+          |/         |/
+          2 -------- 0
+    """
+    center = gt_boxes[0:3]
+    lwh = gt_boxes[3:6]
+    axis_angles = np.array([0, 0, gt_boxes[6] + 1e-10])
+    rot = o3d.geometry.get_rotation_matrix_from_axis_angle(axis_angles)
+    box3d = o3d.geometry.OrientedBoundingBox(center, rot, lwh)
+
+    line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
+
+    # import ipdb; ipdb.set_trace(context=20)
+    lines = np.asarray(line_set.lines)
+    lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
+
+    line_set.lines = o3d.utility.Vector2iVector(lines)
+
+    return line_set, box3d
+
+box_colormap = [
+    [1, 1, 1],
+    [0, 1, 0],
+    [0, 1, 1],
+    [1, 1, 0],
+]
+
+def draw_box(vis, gt_boxes, color=(0, 1, 0), ref_labels=None, score=None):
+    for i in range(gt_boxes.shape[0]):
+        line_set, box3d = translate_boxes_to_open3d_instance(gt_boxes[i])
+        if ref_labels is None:
+            line_set.paint_uniform_color(color)
+        else:
+            line_set.paint_uniform_color(box_colormap[ref_labels[i]])
+
+        vis.add_geometry(line_set)
+
+        # if score is not None:
+        #     corners = box3d.get_box_points()
+        #     vis.add_3d_label(corners[5], '%.2f' % score[i])
+    return vis
 
 def concatenate_points(pc1, pc2, path_save):
     print(pc1.shape)
@@ -220,25 +322,51 @@ if __name__ == "__main__":
     path_v = source_root+'vehicle-side/velodyne/'
     path_i = source_root+'infrastructure-side/velodyne/'
 
-    binpoints=read_pointsbin("/home/lkk/Developer/data/v2xvehiclekitti/velodyne/001766.bin")#converted to kitti
-    draw_pcd(binpoints)
+    data_info_path=source_root+'cooperative/data_info.json'
+    data_info = read_json(data_info_path)
 
-    vehicleLidar_path=path_v+'015344.pcd'
-    vehicle_points = read_pcd(vehicleLidar_path)
-    draw_pcd(vehicle_points) #(63528, 3)
+    example_info=data_info[0]
+    infrastructure_image_path=example_info['infrastructure_image_path'] #'infrastructure-side/image/000049.jpg'
+    infrastructure_image = read_image(source_root+infrastructure_image_path)
+    infrastructure_pointcloud_path=example_info['infrastructure_pointcloud_path'] # 'infrastructure-side/velodyne/000049.pcd'
+    infrastructure_pointcloud=read_pcd(source_root+infrastructure_pointcloud_path)
+    draw_pcd(infrastructure_pointcloud)
+    vehicle_image_path=example_info['vehicle_image_path'] #'vehicle-side/image/015404.jpg'
+    vehicle_image  = read_image(source_root+vehicle_image_path)
+    vehicle_pointcloud_path=example_info['vehicle_pointcloud_path'] #'vehicle-side/velodyne/015404.pcd'
+    vehicle_pointcloud = read_pcd(source_root+vehicle_pointcloud_path)
+    draw_pcd(vehicle_pointcloud)
+    cooperative_label_path=example_info['cooperative_label_path'] #'cooperative/label_world/015404.json'
+    cooperative_label = read_json(source_root+cooperative_label_path)
 
-    infraLidar_path=path_i+'000009.pcd'
-    Infra_points = read_pcd(infraLidar_path)
-    draw_pcd(Infra_points)
 
-    i2vlidar_path=path_i2v+'000016.pcd'
-    i2vpoints = read_pcd(i2vlidar_path)
-    draw_pcd(i2vpoints)
+
+
+
+
+
+    # binpoints=read_pointsbin("/home/lkk/Developer/data/v2xvehiclekitti/velodyne/001766.bin")#converted to kitti
+    # draw_pcd(binpoints)
+
+    # vehicleLidar_path=path_v+'015344.pcd'
+    # vehicle_points = read_pcd(vehicleLidar_path)
+    # draw_pcd(vehicle_points) #(63528, 3)
+
+    # infraLidar_path=path_i+'000009.pcd'
+    # Infra_points = read_pcd(infraLidar_path)
+    # draw_pcd(Infra_points)
+
+    # i2vlidar_path=path_i2v+'000016.pcd'
+    # i2vpoints = read_pcd(i2vlidar_path)
+    # draw_pcd(i2vpoints)
 
     path_c_data_info = os.path.join(source_root, "cooperative/data_info.json")
     c_data_info = read_json(path_c_data_info)
     data=c_data_info[0]
     fusedpoints, name_v, name_i = concatenate_datainfo(source_root, path_i2v, data)
     draw_pcd(fusedpoints)
+
+    boxes = read_label_bboxes(cooperative_label_path)
+    draw_pcd(fusedpoints, gt_boxes=boxes)
 
 
