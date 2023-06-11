@@ -443,7 +443,7 @@ def plot_label_pcd(args):
 
 
 def add_arguments(parser):
-    parser.add_argument("--task", type=str, default="single", choices=["fusion", "single", "pcd_label"])
+    parser.add_argument("--task", type=str, default="pcd_label", choices=["fusion", "single", "pcd_label"])
     parser.add_argument("--path", type=str, default="/mnt/f/Dataset/DAIR-C/cooperative-vehicle-infrastructure-example_10906136335224832/cooperative-vehicle-infrastructure-example")
     parser.add_argument("--id", type=int, default=0)
     parser.add_argument("--pcd-path", type=str, default="/mnt/f/Dataset/DAIR-C/cooperative-vehicle-infrastructure-example_10906136335224832/cooperative-vehicle-infrastructure-example/vehicle-side/velodyne/015344.pcd", help="pcd path to visualize")
