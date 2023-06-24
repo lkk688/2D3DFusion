@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from mydetector3d.ops.roiaware_pool3d import roiaware_pool3d_utils
+#from mydetector3d.ops.roiaware_pool3d import roiaware_pool3d_utils
 from mydetector3d.utils import common_utils
 from mydetector3d.datasets.dataset import DatasetTemplate
 from pyquaternion import Quaternion
@@ -330,6 +330,7 @@ class NuScenesDataset(DatasetTemplate):
 
     def create_groundtruth_database(self, used_classes=None, max_sweeps=10):
         import torch
+        from mydetector3d.ops.roiaware_pool3d import roiaware_pool3d_utils
 
         database_save_path = self.root_path / \
             f'gt_database_{max_sweeps}sweeps_withvelo'
@@ -481,6 +482,8 @@ if __name__ == '__main__':
                          'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone']  # ignore
         nuscenes_dataset = NuScenesDataset(dataset_cfg=dataset_cfg, class_names=nuclass_names, training=True, root_path=Path(
             args.datapath), logger=common_utils.create_logger())
+        print("Dataset infos len:", len(nuscenes_dataset.infos))
+        print(nuscenes_dataset.infos[0])
         dataloader = DataLoader(nuscenes_dataset, batch_size=4, pin_memory=True, num_workers=1, shuffle=None,
                             collate_fn=nuscenes_dataset.collate_batch, drop_last=False, sampler=None, timeout=0, worker_init_fn=None)
         print("dataloader len:", len(dataloader)) #30895
