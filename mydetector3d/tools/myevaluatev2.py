@@ -96,15 +96,16 @@ def load_data_to_device(batch_dict, device):
     #     batch_dict = batch_dict.to(device)
 
 #'/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0502/ckpt/checkpoint_epoch_128.pth'
+#'mydetector3d/tools/cfgs/dairkitti_models/mybevfusion.yaml'
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dairkitti_models/mybevfusion.yaml', help='specify the model config')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/nuscenes_models/cbgs_pp_multihead.yaml', help='specify the model config')
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/dairkitti_models/my3dmodelv2/0518/ckpt/latest_model.pth', help='checkpoint to evaluate')
-    parser.add_argument('--tag', type=str, default='0518conv', help='rag name')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/nuscenes_models/cbgs_pp_multihead/0522/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
+    parser.add_argument('--tag', type=str, default='0624', help='rag name')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
