@@ -1,3 +1,4 @@
+from PIL import Image
 import copy
 import pickle
 from pathlib import Path
