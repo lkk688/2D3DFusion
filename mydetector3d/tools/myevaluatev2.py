@@ -67,13 +67,15 @@ from mydetector3d.datasets.kitti.kitti_dataset import KittiDataset
 from mydetector3d.datasets.kitti.waymokitti_simpledataset import WaymoKittiDataset
 from mydetector3d.datasets.kitti.dairkitti_dataset import DairKittiDataset
 from mydetector3d.datasets.waymo.waymo_dataset import WaymoDataset
+from mydetector3d.datasets.nuscenes.nuscenes_dataset import NuScenesDataset
 from torch.utils.data import DataLoader
 __datasetall__ = {
     'KittiDataset': KittiDataset,
     'WaymoKittiDataset': WaymoKittiDataset,
     'waymokitti_dataset': WaymoKittiDataset,
     'WaymoDataset': WaymoDataset,
-    'DairKittiDataset': DairKittiDataset
+    'DairKittiDataset': DairKittiDataset,
+    'NuScenesDataset': NuScenesDataset
 }
 
 #newly created
