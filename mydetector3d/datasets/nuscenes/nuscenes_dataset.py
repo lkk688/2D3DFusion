@@ -405,10 +405,10 @@ def create_nuscenes_info(version, data_path, save_path, max_sweeps=10, with_cam=
         raise NotImplementedError
 
     nusc = NuScenes(version=version, dataroot=data_path, verbose=True)
-    available_scenes = nuscenes_utils.get_available_scenes(nusc)
+    available_scenes = nuscenes_utils.get_available_scenes(nusc) #850 scenes
     available_scene_names = [s['name'] for s in available_scenes]
     train_scenes = list(
-        filter(lambda x: x in available_scene_names, train_scenes))
+        filter(lambda x: x in available_scene_names, train_scenes)) #700 scenes
     val_scenes = list(filter(lambda x: x in available_scene_names, val_scenes))
     train_scenes = set(
         [available_scenes[available_scene_names.index(s)]['token'] for s in train_scenes])
@@ -446,7 +446,7 @@ if __name__ == '__main__':
     parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/dataset_configs/nuscenes_dataset.yaml',
                         help='specify the config of dataset')
     parser.add_argument('--datapath', type=str,
-                        default='/data/cmpe249-fa22/nuScenes', help='specify the path of dataset')
+                        default='/DATA10T/Datasets/nuScenes', help='specify the path of dataset') # /data/cmpe249-fa22/nuScenes
     parser.add_argument('--func', type=str,
                         default='test_dataset', help='')
     parser.add_argument('--version', type=str,
@@ -483,8 +483,10 @@ if __name__ == '__main__':
                          'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone']  # ignore
         nuscenes_dataset = NuScenesDataset(dataset_cfg=dataset_cfg, class_names=nuclass_names, training=True, root_path=Path(
             args.datapath), logger=common_utils.create_logger())
-        print("Dataset infos len:", len(nuscenes_dataset.infos))
-        print(nuscenes_dataset.infos[0])
+        print("Dataset infos len:", len(nuscenes_dataset.infos)) #123580
+        print("One info keys:")
+        for key in nuscenes_dataset.infos[0]:
+            print(key)
         dataloader = DataLoader(nuscenes_dataset, batch_size=4, pin_memory=True, num_workers=1, shuffle=None,
                             collate_fn=nuscenes_dataset.collate_batch, drop_last=False, sampler=None, timeout=0, worker_init_fn=None)
         print("dataloader len:", len(dataloader)) #30895

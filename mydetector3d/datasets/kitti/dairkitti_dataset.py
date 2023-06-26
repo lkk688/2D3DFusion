@@ -787,6 +787,10 @@ if __name__ == '__main__':
         print("total lidar files:", len(lidarpath_list))
         from torch.utils.data import DataLoader
         dataset = DairKittiDataset(dataset_cfg=dataset_cfg, class_names=['Car', 'Pedestrian', 'Cyclist', 'Other'], root_path=Path(args.inputfolder), training=True)
+        print("Dataset infos len:", len(dataset.kitti_infos)) #123580
+        print("One info keys:")
+        for key in dataset.kitti_infos[0]:
+            print(key)
         dataloader = DataLoader(
         dataset, batch_size=4, pin_memory=True, num_workers=1,
         shuffle=None, collate_fn=dataset.collate_batch,
