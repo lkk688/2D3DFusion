@@ -793,6 +793,8 @@ if __name__ == '__main__':
         print("One info keys:")
         for key in dataset.kitti_infos[0]:
             print(key)
+        for key in dataset.kitti_infos[0]['annos']:
+            print(key)
         dataloader = DataLoader(
         dataset, batch_size=4, pin_memory=True, num_workers=1,
         shuffle=None, collate_fn=dataset.collate_batch,
