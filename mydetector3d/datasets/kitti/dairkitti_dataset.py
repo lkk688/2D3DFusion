@@ -1,3 +1,5 @@
+from scipy import linalg
+from PIL import Image
 import copy
 import pickle
 import torch
