@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-class PointPillarScatter(nn.Module): #return pillar to the orignal location based on the index
+class PointPillarScatter(nn.Module): #return pillar to the original location based on the index
     def __init__(self, model_cfg, grid_size, **kwargs):
         super().__init__()
 
