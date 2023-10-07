@@ -99,9 +99,12 @@ class AnchorHeadTemplate(nn.Module):
         return targets_dict
 
     def get_cls_layer_loss(self):
+        #(batch_size, 248, 216, 18) predict classes
         cls_preds = self.forward_ret_dict['cls_preds'] #[16, 248, 216, 18]
+        #foreground anchor classes, 'box_cls_labels' is calculated from assign_targets function
         box_cls_labels = self.forward_ret_dict['box_cls_labels'] #[16, 321408] 321408=248*216*3*2 num_anchors
         batch_size = int(cls_preds.shape[0]) #16
+        #interested anchor, (threshold between 0.45~0.6 is -1, not included)
         cared = box_cls_labels >= 0  # [N, num_anchors] [16, 321408]
         positives = box_cls_labels > 0 #forground anchor
         negatives = box_cls_labels == 0 #background anchor
@@ -116,15 +119,20 @@ class AnchorHeadTemplate(nn.Module):
         reg_weights /= torch.clamp(pos_normalizer, min=1.0)
         cls_weights /= torch.clamp(pos_normalizer, min=1.0)
         cls_targets = box_cls_labels * cared.type_as(box_cls_labels)
+        #expand dimension in the last dimension
         cls_targets = cls_targets.unsqueeze(dim=-1) #[16, 321408, 1]
 
         cls_targets = cls_targets.squeeze(dim=-1)
         one_hot_targets = torch.zeros(
             *list(cls_targets.shape), self.num_class + 1, dtype=cls_preds.dtype, device=cls_targets.device
         ) #[16, 321408, 4] num_class+1 consider the background
+
         one_hot_targets.scatter_(-1, cls_targets.unsqueeze(dim=-1).long(), 1.0) #convert to one-hot encoding [16, 321408, 4]
+        #(batch_size, 248, 216,18)->(batch_size, 321408,3)
         cls_preds = cls_preds.view(batch_size, -1, self.num_class) #[16, 321408, 3]
         one_hot_targets = one_hot_targets[..., 1:] #[16, 321408, 3] remove background class, do not calculate the classification loss for background
+        
+        #calculate classificationn loss [N,M] [16, 321408, 3]
         cls_loss_src = self.cls_loss_func(cls_preds, one_hot_targets, weights=cls_weights)  # [16, 321408, 3]
         cls_loss = cls_loss_src.sum() / batch_size
 
@@ -146,26 +154,37 @@ class AnchorHeadTemplate(nn.Module):
     @staticmethod
     def get_direction_target(anchors, reg_targets, one_hot=True, dir_offset=0, num_bins=2):
         batch_size = reg_targets.shape[0]
+        #(b,321408,7)
         anchors = anchors.view(batch_size, -1, anchors.shape[-1])
+        #(b,321408) -pi~pi, reg_targets is after encoding, add anchors degree to get the original degree
         rot_gt = reg_targets[..., 6] + anchors[..., 6]
+        #limit to 0~2pi, original degreee is from -pi~pi
         offset_rot = common_utils.limit_period(rot_gt - dir_offset, 0, 2 * np.pi)
+        #(b,321408) value 0 and 1, num_bins=2
         dir_cls_targets = torch.floor(offset_rot / (2 * np.pi / num_bins)).long()
+        #(b,321408)
         dir_cls_targets = torch.clamp(dir_cls_targets, min=0, max=num_bins - 1)
 
         if one_hot:
+            #(b,321408,2)
             dir_targets = torch.zeros(*list(dir_cls_targets.shape), num_bins, dtype=anchors.dtype,
                                       device=dir_cls_targets.device)
+            #one-hot encoding for two directions (positive and negative)
             dir_targets.scatter_(-1, dir_cls_targets.unsqueeze(dim=-1).long(), 1.0)
             dir_cls_targets = dir_targets
         return dir_cls_targets
 
     def get_box_reg_layer_loss(self):
+        #anchor_box 7 regression parameters, (batch_size, 248, 216, 42)
         box_preds = self.forward_ret_dict['box_preds'] #[16, 248, 216, 42]
+        #anchor_box diretion prediction (batch_size, 248, 216, 12)
         box_dir_cls_preds = self.forward_ret_dict.get('dir_cls_preds', None) #[16, 248, 216, 12]
+        #[batch_size, 321408, 7] anchor and gt coding results
         box_reg_targets = self.forward_ret_dict['box_reg_targets'] #[16, 321408, 7]
         box_cls_labels = self.forward_ret_dict['box_cls_labels'] #[16, 321408]
         batch_size = int(box_preds.shape[0])
 
+        #get all foreground anchor mask: (batch_size, 321408)
         positives = box_cls_labels > 0
         reg_weights = positives.float()
         pos_normalizer = positives.sum(1, keepdim=True).float()
@@ -180,11 +199,14 @@ class AnchorHeadTemplate(nn.Module):
                 anchors = torch.cat(self.anchors, dim=-3) #[1, 248, 216, 1, 2, 7]*3 -> [1, 248, 216, 3, 2, 7]
         else:
             anchors = self.anchors
+        #(1,248*216,7)->(b,248*216,7)
         anchors = anchors.view(1, -1, anchors.shape[-1]).repeat(batch_size, 1, 1) #[16, 321408, 7]
+        #(b,248*216,7)
         box_preds = box_preds.view(batch_size, -1,
                                    box_preds.shape[-1] // self.num_anchors_per_location if not self.use_multihead else
                                    box_preds.shape[-1]) #[16, 321408, 7]
         # sin(a - b) = sinacosb-cosasinb
+        #(b,321408,7)
         box_preds_sin, reg_targets_sin = self.add_sin_difference(box_preds, box_reg_targets)
         loc_loss_src = self.reg_loss_func(box_preds_sin, reg_targets_sin, weights=reg_weights)  # [16, 321408, 7]
         loc_loss = loc_loss_src.sum() / batch_size
@@ -192,22 +214,26 @@ class AnchorHeadTemplate(nn.Module):
         loc_loss = loc_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight']
         box_loss = loc_loss
         tb_dict = {
-            'rpn_loss_loc': loc_loss.item()
+            'rpn_loss_loc': loc_loss.item() #return value
         }
 
         if box_dir_cls_preds is not None:
+            #(b,321408,2)
             dir_targets = self.get_direction_target(
                 anchors, box_reg_targets,
-                dir_offset=self.model_cfg.DIR_OFFSET,
-                num_bins=self.model_cfg.NUM_DIR_BINS
+                dir_offset=self.model_cfg.DIR_OFFSET, #direction offset 0.785=pi/4
+                num_bins=self.model_cfg.NUM_DIR_BINS #directions of bins =2
             )
-
+            #(b,321408,2)
             dir_logits = box_dir_cls_preds.view(batch_size, -1, self.model_cfg.NUM_DIR_BINS)
+            #positive sample (b,321408)
             weights = positives.type_as(dir_logits)
+            #normalize
             weights /= torch.clamp(weights.sum(-1, keepdim=True), min=1.0)
             dir_loss = self.dir_loss_func(dir_logits, dir_targets, weights=weights)
             dir_loss = dir_loss.sum() / batch_size
             dir_loss = dir_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['dir_weight']
+            #add direction loss to the box loss
             box_loss += dir_loss
             tb_dict['rpn_loss_dir'] = dir_loss.item()
 

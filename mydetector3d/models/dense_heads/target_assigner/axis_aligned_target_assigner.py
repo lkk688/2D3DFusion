@@ -38,6 +38,7 @@ class AxisAlignedTargetAssigner(object):
         Args:
             all_anchors: [(N, 7), ...]   [1, 248, 216, 1, 2, 7]*3
             gt_boxes: (B, M, 8)     [16, 45, 8], 8 is (x,y,z,w,l,h,theta,class)
+            calculate the background or foreground case of each anchor
         Returns:
 
         """
@@ -47,7 +48,8 @@ class AxisAlignedTargetAssigner(object):
         reg_weights = []
 
         batch_size = gt_boxes_with_classes.shape[0]
-        gt_classes = gt_boxes_with_classes[:, :, -1] #[16, 45]
+        gt_classes = gt_boxes_with_classes[:, :, -1] #[16, 45] [Batchsize, num_of_gt]
+        #all gt box 7 parameters
         gt_boxes = gt_boxes_with_classes[:, :, :-1] #[16, 45, 7] remove 1 (class) from 8->7 (x,y,z,w,l,h,theta)
         for k in range(batch_size): #match each frame to anchor's foreground and background
             cur_gt = gt_boxes[k] #[45, 7] [44,7] get gt_boxes in current frame (some GT boxes are 0 in pre-process to match max GT size)
@@ -58,6 +60,7 @@ class AxisAlignedTargetAssigner(object):
             cur_gt_classes = gt_classes[k][:cnt + 1].int() #34 get the true gt+class without 0
 
             target_list = []
+            #for every anchor in the current frame
             for anchor_class_name, anchors in zip(self.anchor_class_names, all_anchors): #for each class
                 if cur_gt_classes.shape[0] > 1:
                     mask = torch.from_numpy(self.class_names[cur_gt_classes.cpu() - 1] == anchor_class_name) #select 'Car' in all gt [44]
@@ -77,11 +80,14 @@ class AxisAlignedTargetAssigner(object):
                     selected_classes = cur_gt_classes[mask] #18 Cars
                 else:
                     feature_map_size = anchors.shape[:3] #[1, 248, 216]
+                    #flatten all anchors (216,248,1,1,2,7)->[107136, 7]
                     anchors = anchors.view(-1, anchors.shape[-1]) #[107136, 7]
+                    #get the class based on mask
                     selected_classes = cur_gt_classes[mask] #13
-                #single class
+                
+                #assign gt_boxes to single class, setup foreground, background box code and regression weights
                 single_target = self.assign_targets_single(
-                    anchors, #all anchors
+                    anchors, #all anchors in that class
                     cur_gt[mask], #true gt_boxes (num_gtbox,7)
                     gt_classes=selected_classes, #18 array
                     matched_threshold=self.matched_thresholds[anchor_class_name],
@@ -101,16 +107,22 @@ class AxisAlignedTargetAssigner(object):
                 target_dict['reg_weights'] = torch.cat(target_dict['reg_weights'], dim=0).view(-1)
             else:
                 target_dict = {
+                    #feature_map_size: (1,200,176,2)
                     'box_cls_labels': [t['box_cls_labels'].view(*feature_map_size, -1) for t in target_list],
+                    #(1,248,216,2,7)
                     'box_reg_targets': [t['box_reg_targets'].view(*feature_map_size, -1, self.box_coder.code_size)
                                         for t in target_list],
+                    #(1,248,216,2)
                     'reg_weights': [t['reg_weights'].view(*feature_map_size, -1) for t in target_list]
                 }
+
+                #list: 3*anchor (1,248,216,2,7)-->(1,248,216,6,7)->(321408,7)
                 target_dict['box_reg_targets'] = torch.cat(
                     target_dict['box_reg_targets'], dim=-2
                 ).view(-1, self.box_coder.code_size)
-
+                #list:3 (1,248,216,2)-->(1,248,216,6)->(1*248*216*6,)
                 target_dict['box_cls_labels'] = torch.cat(target_dict['box_cls_labels'], dim=-1).view(-1)
+                #list:3 (1,200,176,2)-->(1,200,176,6)->(1*248*216*6,)
                 target_dict['reg_weights'] = torch.cat(target_dict['reg_weights'], dim=-1).view(-1)
 
             bbox_targets.append(target_dict['box_reg_targets']) #[211200, 7]
@@ -131,29 +143,42 @@ class AxisAlignedTargetAssigner(object):
 
     def assign_targets_single(self, anchors, gt_boxes, gt_classes, matched_threshold=0.6, unmatched_threshold=0.45):
         #process for each class, e.g., 'Car'
-        num_anchors = anchors.shape[0] #107136
-        num_gt = gt_boxes.shape[0] #13
+        #anchors: [107136, 7]
+        num_anchors = anchors.shape[0] #107136=216*248 anchor numbers
+        num_gt = gt_boxes.shape[0] #13 number of GT boxes
+
         #initialize labels and gt_ides for each anchor to -1, Loss will not calcuate -1, background=0
         labels = torch.ones((num_anchors,), dtype=torch.int32, device=anchors.device) * -1 #[num_anchor] size
         gt_ids = torch.ones((num_anchors,), dtype=torch.int32, device=anchors.device) * -1
 
+        #calculate the foreground and background of the anchor
         if len(gt_boxes) > 0 and anchors.shape[0] > 0:
+            #calculate the iou of the anchor and gt (jaccard index)
             anchor_by_gt_overlap = iou3d_nms_utils.boxes_iou3d_gpu(anchors[:, 0:7], gt_boxes[:, 0:7]) \
                 if self.match_height else box_utils.boxes3d_nearest_bev_iou(anchors[:, 0:7], gt_boxes[:, 0:7]) #if not match height, only use 2D box in bev
-            #anchor_by_gt_overlap:[70400, 18] iou for each anchor and gt_box (jaccard index), most value =0
+            #anchor_by_gt_overlap:[107136, num_gt] iou for each anchor and gt_box (jaccard index), most value =0
+            
             # NOTE: The speed of these two versions depends the environment and the number of anchors
+            
             # anchor_to_gt_argmax = torch.from_numpy(anchor_by_gt_overlap.cpu().numpy().argmax(axis=1)).cuda()
             anchor_to_gt_argmax = anchor_by_gt_overlap.argmax(dim=1) #[70400] get anchor's max IOU among all gt boxes
+            #get the best fit iou with gt for each anchor
             anchor_to_gt_max = anchor_by_gt_overlap[torch.arange(num_anchors, device=anchors.device), anchor_to_gt_argmax] #iou value for most matched gt box
 
+            #find the index of the best matched iou for anchor and gt.
             # gt_to_anchor_argmax = torch.from_numpy(anchor_by_gt_overlap.cpu().numpy().argmax(axis=0)).cuda()
+            #(num_of_gt, )
             gt_to_anchor_argmax = anchor_by_gt_overlap.argmax(dim=0) #[70400, 18]->[18] max in dim=0: for each gt, get the most matched anchor index
+            #(num_of_gt, ) get the iou that best matched with anchor
             gt_to_anchor_max = anchor_by_gt_overlap[gt_to_anchor_argmax, torch.arange(num_gt, device=anchors.device)] # IOU value for most matched anchor
             empty_gt_mask = gt_to_anchor_max == 0 #which gt_box did not get matched anchor
             gt_to_anchor_max[empty_gt_mask] = -1 #set these unmatched gt's IOU=-1
 
+            #find the anchor index with max iou, i.e., foreground anchor
+            #(num_of_multiple_best_matching_for_per_GT,)
             anchors_with_max_overlap = (anchor_by_gt_overlap == gt_to_anchor_max).nonzero()[:, 0] #[21] number of multiple best matching IOU
             gt_inds_force = anchor_to_gt_argmax[anchors_with_max_overlap] #[21] matched with which gt index
+            #get gt's class
             labels[anchors_with_max_overlap] = gt_classes[gt_inds_force] #[70400] put gt index into anchors' label
             gt_ids[anchors_with_max_overlap] = gt_inds_force.int() #[70400] put gt index into anchors' gt_ids
 
@@ -167,8 +192,11 @@ class AxisAlignedTargetAssigner(object):
 
         fg_inds = (labels > 0).nonzero()[:, 0] #[85] foreground anchor index
 
+        #if foreground sampling percentage, sample the foreground and background to make it balanced
+        #PointPillar did not do that step, using focal loss
         if self.pos_fraction is not None: #sample the foreground, here is none
             num_fg = int(self.pos_fraction * self.sample_size)
+            #foreground anchor is large than sample number
             if len(fg_inds) > num_fg:
                 num_disabled = len(fg_inds) - num_fg
                 disable_inds = torch.randperm(len(fg_inds))[:num_disabled]
@@ -187,6 +215,7 @@ class AxisAlignedTargetAssigner(object):
                 labels[bg_inds] = 0 #background set to 0
                 labels[anchors_with_max_overlap] = gt_classes[gt_inds_force] #[70400] set classes to anchor
 
+        #calculate bbox_targets and reg_weights
         bbox_targets = anchors.new_zeros((num_anchors, self.box_coder.code_size)) #[70400, 7]
         if len(gt_boxes) > 0 and anchors.shape[0] > 0:
             fg_gt_boxes = gt_boxes[anchor_to_gt_argmax[fg_inds], :] #[85, 7] foreground gt box for each anchor
@@ -204,7 +233,7 @@ class AxisAlignedTargetAssigner(object):
 
         ret_dict = {
             'box_cls_labels': labels, #[70400]
-            'box_reg_targets': bbox_targets, #[70400, 7]
+            'box_reg_targets': bbox_targets, #[70400, 7] after encoding
             'reg_weights': reg_weights, #[70400]
         }
         return ret_dict
