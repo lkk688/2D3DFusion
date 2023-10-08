@@ -12,11 +12,10 @@ Clone this repository, install this package (need NVIDIA CUDA environment)
 ```bash
 sudo python setup.py develop
 ```
-During the installation process, some cuda ops libraries will be compiled.
 
 Install the SparseConv library from [spconv](https://github.com/traveller59/spconv) and [numba](https://numba.pydata.org/numba-doc/latest/user/installing.html):
 ```bash
-pip install spconv-cu117
+pip install spconv-cu117 #pip install spconv-cu118
 pip install numba
 ```
 
