@@ -74,6 +74,7 @@ def train(version,
         for batchi, (imgs, rots, trans, intrins, post_rots, post_trans, binimgs) in enumerate(trainloader):
             t0 = time()
             opt.zero_grad()
+            #imgs is [4, 5, 3, 128, 352]
             preds = model(imgs.to(device),
                     rots.to(device),
                     trans.to(device),

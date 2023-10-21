@@ -132,14 +132,14 @@ class LiftSplatShoot(nn.Module):
                                               self.grid_conf['ybound'],
                                               self.grid_conf['zbound'],
                                               )
-        self.dx = nn.Parameter(dx, requires_grad=False)
-        self.bx = nn.Parameter(bx, requires_grad=False)
-        self.nx = nn.Parameter(nx, requires_grad=False)
+        self.dx = nn.Parameter(dx, requires_grad=False) #[ 0.5000,  0.5000, 20.0000]
+        self.bx = nn.Parameter(bx, requires_grad=False) #[-49.7500, -49.7500,   0.0000]
+        self.nx = nn.Parameter(nx, requires_grad=False) #[200, 200,   1]
 
         self.downsample = 16
         self.camC = 64
-        self.frustum = self.create_frustum()
-        self.D, _, _, _ = self.frustum.shape
+        self.frustum = self.create_frustum() #[41, 8, 22, 3]
+        self.D, _, _, _ = self.frustum.shape #D=41
         self.camencode = CamEncode(self.D, self.camC, self.downsample)
         self.bevencode = BevEncode(inC=self.camC, outC=outC)
 
