@@ -21,11 +21,14 @@ class NuscData(torch.utils.data.Dataset):
         self.data_aug_conf = data_aug_conf
         self.grid_conf = grid_conf
 
-        self.scenes = self.get_scenes()
-        self.ixes = self.prepro()
+        self.scenes = self.get_scenes() #8 scenes
+        self.ixes = self.prepro() #323 samples
 
         dx, bx, nx = gen_dx_bx(grid_conf['xbound'], grid_conf['ybound'], grid_conf['zbound'])
         self.dx, self.bx, self.nx = dx.numpy(), bx.numpy(), nx.numpy()
+        #dx: [ 0.5000,  0.5000, 20.0000]steps in xbound, ybound, and zbound
+        #bx: [-49.7500, -49.7500,   0.0000] mid of the first grid:
+        #nx: [200, 200,   1] number of grids in xyz
 
         self.fix_nuscenes_formatting()
 
@@ -78,7 +81,7 @@ class NuscData(torch.utils.data.Dataset):
         return scenes
 
     def prepro(self):
-        samples = [samp for samp in self.nusc.sample]
+        samples = [samp for samp in self.nusc.sample] #404 samples
 
         # remove samples that aren't in this split
         samples = [samp for samp in samples if

@@ -25,6 +25,10 @@ build additional cuda ops libraries via
 (mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/ops/setup.py build_ext --inplace
 pip install nuscenes-devkit #required by nuscenes dataset
 pip install efficientnet_pytorch==0.7.0 #required by lss
+pip install pynvml
+pip install nvidia-ml-py3 #required by import nvidia_smi
+pip3 install --upgrade pyside2 pyqt5 #qt.qpa.plugin: Could not load the Qt platform plugin "xcb"
+pip install kornia #required by BEVFusion
 $ module load gcc/11.2.0
 $ python cudasetup.py build_ext --inplace
 ```

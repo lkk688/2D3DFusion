@@ -33,13 +33,13 @@ class Up(nn.Module):
 class CamEncode(nn.Module):
     def __init__(self, D, C, downsample):
         super(CamEncode, self).__init__()
-        self.D = D
-        self.C = C
+        self.D = D #41
+        self.C = C #64
 
         self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
 
-        self.up1 = Up(320+112, 512)
-        self.depthnet = nn.Conv2d(512, self.D + self.C, kernel_size=1, padding=0)
+        self.up1 = Up(320+112, 512) #fusion the last two levels (bs*N, 512, H/16, W/16）
+        self.depthnet = nn.Conv2d(512, self.D + self.C, kernel_size=1, padding=0) #512, D(41)+C(64)
 
     def get_depth_dist(self, x, eps=1e-20):
         return x.softmax(dim=1)
@@ -84,7 +84,7 @@ class CamEncode(nn.Module):
 
 
 class BevEncode(nn.Module):
-    def __init__(self, inC, outC):
+    def __init__(self, inC, outC): #inC=64, outC=1
         super(BevEncode, self).__init__()
 
         trunk = resnet18(pretrained=False, zero_init_residual=True)
@@ -97,7 +97,7 @@ class BevEncode(nn.Module):
         self.layer2 = trunk.layer2
         self.layer3 = trunk.layer3
 
-        self.up1 = Up(64+256, 256, scale_factor=4)
+        self.up1 = Up(64+256, 256, scale_factor=4) #upsample 4x, 256+64=320
         self.up2 = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear',
                               align_corners=True),
@@ -107,17 +107,17 @@ class BevEncode(nn.Module):
             nn.Conv2d(128, outC, kernel_size=1, padding=0),
         )
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
+    def forward(self, x): #[4, 64, 200, 200]
+        x = self.conv1(x) #[4, 64, 100, 100]
+        x = self.bn1(x) #[4, 64, 100, 100]
+        x = self.relu(x) #[4, 64, 100, 100]
 
-        x1 = self.layer1(x)
-        x = self.layer2(x1)
-        x = self.layer3(x)
+        x1 = self.layer1(x) #[4, 64, 100, 100]
+        x = self.layer2(x1) #[4, 128, 50, 50]
+        x = self.layer3(x) #[4, 256, 25, 25]
 
-        x = self.up1(x, x1)
-        x = self.up2(x)
+        x = self.up1(x, x1) #[4, 256, 100, 100]
+        x = self.up2(x) #[4, 1, 200, 200]
 
         return x
 
@@ -140,7 +140,7 @@ class LiftSplatShoot(nn.Module):
         self.camC = 64
         self.frustum = self.create_frustum() #[41, 8, 22, 3]
         self.D, _, _, _ = self.frustum.shape #D=41
-        self.camencode = CamEncode(self.D, self.camC, self.downsample)
+        self.camencode = CamEncode(self.D, self.camC, self.downsample) #41,64,16
         self.bevencode = BevEncode(inC=self.camC, outC=outC)
 
         # toggle using QuickCumsum vs. autograd
@@ -238,18 +238,24 @@ class LiftSplatShoot(nn.Module):
         return final
 
     def get_voxels(self, x, rots, trans, intrins, post_rots, post_trans):
-        geom = self.get_geometry(rots, trans, intrins, post_rots, post_trans)
-        x = self.get_cam_feats(x)
+        geom = self.get_geometry(rots, trans, intrins, post_rots, post_trans) #[4, 6, 41, 8, 22, 3]
+        x = self.get_cam_feats(x) #[4, 6, 41, 8, 22, 64]
 
-        x = self.voxel_pooling(geom, x)
+        x = self.voxel_pooling(geom, x) #[4, 64, 200, 200]
 
         return x
 
+    #x: [4, 6, 3, 128, 352]
+    #rots: [4, 6, 3, 3]
+    #trans: [4, 6, 3]
+    #intrins: [4, 6, 3, 3]
+    #post_rots: [4, 6, 3, 3]
+    #post_trans: [4, 6, 3]
     def forward(self, x, rots, trans, intrins, post_rots, post_trans):
         x = self.get_voxels(x, rots, trans, intrins, post_rots, post_trans)
-        x = self.bevencode(x)
+        x = self.bevencode(x) #[4, 64, 200, 200]-> [4, 1, 200, 200]
         return x
-
+    
 
 def compile_model(grid_conf, data_aug_conf, outC):
     return LiftSplatShoot(grid_conf, data_aug_conf, outC)

@@ -204,7 +204,7 @@ def eval_model_iou(version,
                 xbound=[-50.0, 50.0, 0.5],
                 ybound=[-50.0, 50.0, 0.5],
                 zbound=[-10.0, 10.0, 20.0],
-                dbound=[4.0, 45.0, 1.0],
+                dbound=[4.0, 45.0, 1.0], #4meter to 45meter, 1meter grid, 41 steps
 
                 bsz=4,
                 nworkers=10,
@@ -216,12 +216,12 @@ def eval_model_iou(version,
         'dbound': dbound,
     }
     data_aug_conf = {
-                    'resize_lim': resize_lim,
-                    'final_dim': final_dim,
-                    'rot_lim': rot_lim,
-                    'H': H, 'W': W,
-                    'rand_flip': rand_flip,
-                    'bot_pct_lim': bot_pct_lim,
+                    'resize_lim': resize_lim, #(0.193, 0.225)
+                    'final_dim': final_dim, #(128, 352)
+                    'rot_lim': rot_lim, #(-5.4, 5.4)
+                    'H': H, 'W': W, #800 1600
+                    'rand_flip': rand_flip, #True
+                    'bot_pct_lim': bot_pct_lim, #(0.0, 0.22)
                     'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
                              'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
                     'Ncams': 5,
@@ -237,7 +237,7 @@ def eval_model_iou(version,
     model.load_state_dict(torch.load(modelf))
     model.to(device)
 
-    loss_fn = SimpleLoss(1.0).cuda(gpuid)
+    loss_fn = SimpleLoss(1.0).cuda(gpuid) #BCEWithLogitsLoss
 
     model.eval()
     val_info = get_val_info(model, valloader, loss_fn, device)
@@ -299,7 +299,7 @@ def viz_model_preds(version,
     model.to(device)
 
     dx, bx, _ = gen_dx_bx(grid_conf['xbound'], grid_conf['ybound'], grid_conf['zbound'])
-    dx, bx = dx[:2].numpy(), bx[:2].numpy()
+    dx, bx = dx[:2].numpy(), bx[:2].numpy() #dx: [0.5, 0.5], bx: [-49.75, -49.75]
 
     scene2map = {}
     for rec in loader.dataset.nusc.scene:
@@ -308,7 +308,7 @@ def viz_model_preds(version,
 
 
     val = 0.01
-    fH, fW = final_dim
+    fH, fW = final_dim #(128, 352)
     fig = plt.figure(figsize=(3*fW*val, (1.5*fW + 2*fH)*val))
     gs = mpl.gridspec.GridSpec(3, 3, height_ratios=(1.5*fW, fH, fH))
     gs.update(wspace=0.0, hspace=0.0, left=0.0, right=1.0, top=1.0, bottom=0.0)
@@ -323,14 +323,14 @@ def viz_model_preds(version,
                     intrins.to(device),
                     post_rots.to(device),
                     post_trans.to(device),
-                    )
+                    ) #[4, 1, 200, 200]
             out = out.sigmoid().cpu()
 
-            for si in range(imgs.shape[0]):
+            for si in range(imgs.shape[0]): #for batch, 4
                 plt.clf()
-                for imgi, img in enumerate(imgs[si]):
-                    ax = plt.subplot(gs[1 + imgi // 3, imgi % 3])
-                    showimg = denormalize_img(img)
+                for imgi, img in enumerate(imgs[si]): #imgs: [4, 6, 3, 128, 352], imgi=0~5
+                    ax = plt.subplot(gs[1 + imgi // 3, imgi % 3]) #// is floor division (integer division)
+                    showimg = denormalize_img(img) #[3, 128, 352]
                     # flip the bottom images
                     if imgi > 2:
                         showimg = showimg.transpose(Image.FLIP_LEFT_RIGHT)
@@ -347,7 +347,7 @@ def viz_model_preds(version,
                     mpatches.Patch(color='#76b900', label='Ego Vehicle'),
                     mpatches.Patch(color=(1.00, 0.50, 0.31, 0.8), label='Map (for visualization purposes only)')
                 ], loc=(0.01, 0.86))
-                plt.imshow(out[si].squeeze(0), vmin=0, vmax=1, cmap='Blues')
+                plt.imshow(out[si].squeeze(0), vmin=0, vmax=1, cmap='Blues') #out is [4, 1, 200, 200]=>[1,200,200]
 
                 # plot static map (improves visualization)
                 rec = loader.dataset.ixes[counter]

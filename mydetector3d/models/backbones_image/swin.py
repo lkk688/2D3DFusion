@@ -713,9 +713,9 @@ class SwinTransformer(nn.Module):
             self.load_state_dict(state_dict, False)
 
     def forward(self, batch_dict):
-        x = batch_dict['camera_imgs']
+        x = batch_dict['camera_imgs'] #[3, 6, 3, 256, 704]
         B, N, C, H, W = x.size()
-        x = x.view(B * N, C, H, W)
+        x = x.view(B * N, C, H, W) #[18, 3, 256, 704]
         x, hw_shape = self.patch_embed(x)
 
         if self.use_abs_pos_embed:

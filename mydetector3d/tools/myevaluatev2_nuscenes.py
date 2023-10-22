@@ -13,6 +13,12 @@ import torch
 from easydict import EasyDict
 import copy
 
+try:
+    import kornia
+except:
+    print('required by BEV')
+    pass
+
 def check_gpus():
     import nvidia_smi #pip install nvidia-ml-py3
     nvidia_smi.nvmlInit()
@@ -82,37 +88,46 @@ __datasetall__ = {
 def load_data_to_device(batch_dict, device):
     if type(batch_dict) is dict:
         for key, val in batch_dict.items():
-            if not isinstance(val, np.ndarray):
-                continue
-            elif key in ['frame_id', 'metadata', 'calib']:
+            if key in ['frame_id', 'metadata', 'calib', 'image_paths', 'img_process_infos', 'ori_shape']:
                 continue
             # elif key in ['images']:
             #     batch_dict[key] = kornia.image_to_tensor(val).float().cuda().contiguous()
-            # elif key in ['images']:
-            #     batch_dict[key] = kornia.image_to_tensor(val).float().to(device).contiguous()
+            elif key in ['images']:
+                tensordata =kornia.image_to_tensor(val).float()
+                batch_dict[key] = tensordata.to(device).contiguous()
+            elif key in ['camera_imgs']:
+                batch_dict[key] = batch_dict[key].float().to(device).contiguous()
             elif key in ['image_shape']:
                 batch_dict[key] = batch_dict[key] = torch.from_numpy(val).int().to(device) #torch.from_numpy(val).int().cuda()
+            elif not isinstance(val, np.ndarray):
+                continue
             else:
-                batch_dict[key] = torch.from_numpy(val).float().to(device) #torch.from_numpy(val).float().cuda()
+                #print(key)
+                tensordata = torch.from_numpy(val)
+                #print(tensordata.shape)
+                batch_dict[key] = tensordata.float().to(device) #torch.from_numpy(val).float().cuda()
     # else:
     #     batch_dict = batch_dict.to(device)
 
 #'/data/cmpe249-fa22/Mymodels/waymokitti_models/second/0502/ckpt/checkpoint_epoch_128.pth'
 #'mydetector3d/tools/cfgs/dairkitti_models/mybevfusion.yaml'
 
+#'mydetector3d/tools/cfgs/nuscenes_models/cbgs_pp_multihead.yaml'
+#'/data/cmpe249-fa22/Mymodels/nuscenes_models/cbgs_pp_multihead/0522/ckpt/checkpoint_epoch_128.pth'
+
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/nuscenes_models/cbgs_pp_multihead.yaml', help='specify the model config')
+    parser.add_argument('--cfg_file', type=str, default='mydetector3d/tools/cfgs/nuscenes_models/bevfusion.yaml', help='specify the model config')
     parser.add_argument('--dataset_cfg_file', type=str, default=None, help='specify the dataset config')
     #parser.add_argument('--batch_size', type=int, default=16, required=False, help='batch size')
     parser.add_argument('--workers', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/nuscenes_models/cbgs_pp_multihead/0522/ckpt/checkpoint_epoch_128.pth', help='checkpoint to evaluate')
-    parser.add_argument('--tag', type=str, default='0624', help='rag name')
+    parser.add_argument('--ckpt', type=str, default='/data/cmpe249-fa22/Mymodels/nuscenes_models/bevfusion/0522/ckpt/checkpoint_epoch_56.pth', help='checkpoint to evaluate')
+    parser.add_argument('--tag', type=str, default='1021', help='rag name')
     parser.add_argument('--outputpath', type=str, default='/data/cmpe249-fa22/Mymodels/', help='output path')
     parser.add_argument('--gpuid', default=0, type=int, help='GPU id to use.')
     parser.add_argument('--save_to_file', default=True, help='')
     parser.add_argument('--kittiformat', default=True, help='')
-    parser.add_argument('--eval_only', default=True, help='') #When detection result is available, set to True and just run the evaluation
+    parser.add_argument('--eval_only', default=False, help='') #When detection result is available, set to True and just run the evaluation
     parser.add_argument('--savebatchidx', type=int, default=1, help='Save one batch data to pkl for visualization')
     parser.add_argument('--infer_time', default=True, help='calculate inference latency') #action='store_true' true if specified
 
@@ -127,10 +142,11 @@ def parse_config():
     #epoch =Path(ckptsplits[-1]).stem #remove .pth checkpoint_epoch_128.pth
     #epoch =epoch.split('_')[-1] #get epoch number
     #args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_epoch' + epoch
-    args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_'+args.tag
+    args.savename = cfg.datasetname + '_' + cfg.modelnamepath + '_'+args.tag #nuscenes_models_bevfusion_1021
 
 
     args.batch_size = cfg.OPTIMIZATION.BATCH_SIZE_PER_GPU #4
+    print("Batch size:", args.batch_size) #bev:3
 
     args.output_dir = Path(args.outputpath) / 'eval' / args.savename
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -170,7 +186,7 @@ def load_weights_from_file(model, filename, device):
 
 def main():
     args, cfg = parse_config()
-
+    #/data/cmpe249-fa22/Mymodels/eval/nuscenes_models_cbgs_pp_multihead_062
     log_file = args.output_dir / ('log_eval_%s.txt' % datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
     logger = common_utils.create_logger(log_file, rank=0)
 
@@ -187,7 +203,7 @@ def main():
     else: 
         datasetcfg=cfg.DATA_CONFIG #dict
         #cfg_from_yaml_file(cfg.DATA_CONFIG, datasetcfg) #using the default DATA_CONFIG in the model cfg file
-    class_names=cfg.CLASS_NAMES #classnames from the model
+    class_names=cfg.CLASS_NAMES #classnames from the model, 10
     dataset = __datasetall__[datasetcfg.DATASET](
         dataset_cfg=datasetcfg,
         class_names=class_names,
@@ -235,7 +251,7 @@ def main():
     #print(result_str)
     #print(result_dict)
     result_str, result_dict =runevaluation_nuscenes(dataset, det_annos, class_names, args.eval_output_dir, args.kittiformat)
-
+    print(result_str)
 
 def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
     metric = {
@@ -342,7 +358,7 @@ def rundetection(dataloader, model, device, cfg, args, eval_output_dir):
 def runevaluation_nuscenes(dataset, det_annos, class_names, final_output_dir, kittiformat=False):
     result_str, result_dict = dataset.evaluation(
         det_annos, class_names,
-        eval_metric='kitti', #cfg.MODEL.POST_PROCESSING.EVAL_METRIC,
+        eval_metric='kitti', #not used, cfg.MODEL.POST_PROCESSING.EVAL_METRIC,
         output_path=final_output_dir
     )
     text_file = open(final_output_dir / "evalresult_str", "w")

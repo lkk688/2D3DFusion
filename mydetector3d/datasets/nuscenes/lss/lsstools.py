@@ -168,9 +168,9 @@ normalize_img = torchvision.transforms.Compose((
 
 
 def gen_dx_bx(xbound, ybound, zbound):
-    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])
-    bx = torch.Tensor([row[0] + row[2]/2.0 for row in [xbound, ybound, zbound]])
-    nx = torch.LongTensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]])
+    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]]) #[ 0.5000,  0.5000, 20.0000] steps in xbound, ybound, and zbound
+    bx = torch.Tensor([row[0] + row[2]/2.0 for row in [xbound, ybound, zbound]]) #[-49.7500, -49.7500,   0.0000], mid of the first grid: x+step/2, y+step/2, z+step/2
+    nx = torch.LongTensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]) #[200, 200,   1] number of grids in xyz
 
     return dx, bx, nx
 
@@ -219,6 +219,7 @@ class SimpleLoss(torch.nn.Module):
     def __init__(self, pos_weight):
         super(SimpleLoss, self).__init__()
         self.loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([pos_weight]))
+        #combines a Sigmoid layer and the BCELoss in one single class. This version is more numerically stable than using a plain Sigmoid followed by a BCELoss
 
     def forward(self, ypred, ytgt):
         loss = self.loss_fn(ypred, ytgt)
