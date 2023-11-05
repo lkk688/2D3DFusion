@@ -35,16 +35,30 @@ $ python cudasetup.py build_ext --inplace
 
 Install 'mayavi' (ref: https://docs.enthought.com/mayavi/mayavi/installation.html) and open3d (ref: http://www.open3d.org/docs/release/getting_started.html) for 3d point cloud visualization
 ```bash
+conda create --name mycondapy311 python=3.11
+conda activate mycondapy311
+pip install pyqt6
+#test pyqt6: sdrpysim/testpyqt6.py
+pip install pyqtgraph
+#Successfully installed numpy-1.26.1 pyqtgraph-0.13.3
+#import pyqtgraph as pg
+#test pyqtgraph: sdrpysim\pyqt6qtgraphtest.py
+pip install matplotlib #conda install matplotlib will install pyqt5
+#Successfully installed contourpy-1.2.0 cycler-0.12.1 fonttools-4.44.0 kiwisolver-1.4.5 matplotlib-3.8.1 packaging-23.2 pillow-10.1.0 pyparsing-3.1.1 python-dateutil-2.8.2 six-1.16.0
+pip install opencv-python-headless
 pip install mayavi
-pip install PyQt5 #conda install -c anaconda pyqt
-pip install opencv-python
+#pip3 install PySide6 #will cause pyqt6 not working, but mayavi needs PySide6
+pip install pyqt5 #needed by mayavi and matplotlib
+conda install -c conda-forge jupyterlab
 python VisUtils/testmayavi.py #test mayavi installation
-pip install open3d
+pip install open3d #does not support python3.11, only 3.7-3.10
+#install development version of open3d: http://www.open3d.org/docs/latest/getting_started.html
+pip install -U --trusted-host www.open3d.org -f http://www.open3d.org/docs/latest/getting_started.html open3d
+# Verify installation
+python -c "import open3d as o3d; print(o3d.__version__)"
+# Open3D CLI
+open3d example visualization/draw
 python VisUtils/testopen3d.py #test open3d installation
-
-pip install pyside2
-conda remove qt pyqt
-conda install qt pyqt
 ```
 
 ## Training in HPC
