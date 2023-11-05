@@ -10,7 +10,7 @@ The document for 3D detection based on V2X cooperative sensing data: https://myt
 ## Setup repo
 Clone this repository, install this package (need NVIDIA CUDA environment)
 ```bash
-sudo python setup.py develop
+python setup.py develop
 ```
 
 Install the SparseConv library from [spconv](https://github.com/traveller59/spconv) and [numba](https://numba.pydata.org/numba-doc/latest/user/installing.html):
@@ -33,7 +33,24 @@ $ module load gcc/11.2.0
 $ python cudasetup.py build_ext --inplace
 ```
 
-Install 'mayavi' for 3d point cloud visualization.
+Install 'mayavi' (ref: https://docs.enthought.com/mayavi/mayavi/installation.html) and open3d (ref: http://www.open3d.org/docs/release/getting_started.html) for 3d point cloud visualization
+```bash
+pip install mayavi
+pip install PyQt5 #conda install -c anaconda pyqt
+pip install opencv-python
+python VisUtils/testmayavi.py #test mayavi installation
+pip install open3d
+python VisUtils/testopen3d.py #test open3d installation
+
+pip install pyside2
+conda remove qt pyqt
+conda install qt pyqt
+```
+
+## Training in HPC
+```bash
+(mycondapy310) [010796032@cs001 3DDepth]$ python ./mydetector3d/tools/mytrain.py
+```
 
 ## Kitti Dataset
 Check [kittidata](Kitti/kittidata.md) for detailed information of Kitti dataset.
