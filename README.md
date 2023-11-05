@@ -36,8 +36,8 @@ $ python cudasetup.py build_ext --inplace
 Install 'mayavi' for 3d point cloud visualization.
 
 ## Kitti Dataset
-Check ![kittidata](Kitti/kittidata.md) for detailed information of Kitti dataset.
+Check [kittidata](Kitti/kittidata.md) for detailed information of Kitti dataset.
 
 ## Waymo Dataset
-Check ![waymodata](Waymo/waymodata.md) for detailed information of Waymo dataset.
+Check [waymodata](Waymo/waymodata.md) for detailed information of Waymo dataset.
 
