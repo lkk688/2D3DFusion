@@ -3,9 +3,9 @@
 
 The document for 3D detection model design and Kitti and Waymo data training: https://mytutorial-lkk.readthedocs.io/en/latest/mydetector3d.html
 
-The document for 3D detection based on V2X cooperative sensing data: https://mytutorial-lkk.readthedocs.io/en/latest/3DV2X.html
+The document for 3D detection based on V2X cooperative Lidar sensing data: https://mytutorial-lkk.readthedocs.io/en/latest/3DV2X.html
 
-
+Nuscence dataset and BEV transform based on Lift Splat is available on: https://mytutorial-lkk.readthedocs.io/en/latest/nuscenes.html
 
 ## Setup repo
 Clone this repository, install this package (need NVIDIA CUDA environment)
@@ -61,7 +61,7 @@ open3d example visualization/draw
 python VisUtils/testopen3d.py #test open3d installation
 ```
 
-## Training in HPC
+## BEV Fusion Training in HPC now
 ```bash
 (mycondapy310) [010796032@cs001 3DDepth]$ python ./mydetector3d/tools/mytrain.py
 ```

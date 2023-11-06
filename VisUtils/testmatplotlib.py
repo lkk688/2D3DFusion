@@ -1,6 +1,7 @@
 import os
 #https://matplotlib.org/stable/api/backend_qt_api.html
-#os.environ['QT_API'] = 'PyQt6'
+print(os.environ.get('QT_API'))
+#os.environ['QT_API'] = 'pyqt5'
 import matplotlib
 matplotlib.use('QtAgg')
 #matplotlib.use("TkAgg")
