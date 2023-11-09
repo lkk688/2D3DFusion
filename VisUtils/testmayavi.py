@@ -1,5 +1,8 @@
 # import matplotlib
 # matplotlib.use('Agg')
+import os
+#https://matplotlib.org/stable/api/backend_qt_api.html
+#os.environ['QT_API'] = 'PyQt6'
 import cv2
 import sys
 import argparse
