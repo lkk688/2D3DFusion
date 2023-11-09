@@ -85,7 +85,7 @@ MODEL:
         CONVERT_WEIGHTS: True
         INIT_CFG:
             type: Pretrained
-            checkpoint: /data/cmpe249-fa22/Mymodels/swint-nuimages-pretrained.pth
+            checkpoint: /data/cmpe249-fa23/Mymodels/swint-nuimages-pretrained.pth
     
     NECK:
         NAME: GeneralizedLSSFPN

@@ -1,5 +1,5 @@
 DATASET: 'NuScenesDataset'
-DATA_PATH: '/data/cmpe249-fa22/nuScenes'
+DATA_PATH: '/data/cmpe249-fa23/nuScenes'
 
 VERSION: 'v1.0-trainval'
 MAX_SWEEPS: 10
