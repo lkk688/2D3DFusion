@@ -22,7 +22,7 @@ pip install numba
 build additional cuda ops libraries via
 ```bash
 (mycondapy39) [010796032@cs001 3DDepth]$ module load cuda-11.8.0-gcc-11.2.0-5tlywx3 #should match pytorch cuda version
-(mycondapy39) [010796032@cs001 3DDepth]$ python mydetector3d/ops/setup.py build_ext --inplace
+(mycondapy39) [010796032@cs001 3DDepth]$ python cudasetup.py build_ext --inplace
 pip install nuscenes-devkit #required by nuscenes dataset
 pip install efficientnet_pytorch==0.7.0 #required by lss
 pip install pynvml
