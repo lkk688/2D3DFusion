@@ -22,7 +22,7 @@ from torch.utils.data import DistributedSampler as DistributedSampler
 #.tools.train_utils import train_model
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "3" #"0,1"
+#os.environ['CUDA_VISIBLE_DEVICES'] = "3" #"0,1"
 
 #output/kitti_models/pointpillar/0413/ckpt/checkpoint_epoch_128.pth
 #/home/010796032/3DObject/modelzoo_openpcdet/pointpillar_7728.pth
