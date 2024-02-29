@@ -61,6 +61,27 @@ open3d example visualization/draw
 python VisUtils/testopen3d.py #test open3d installation
 ```
 
+[mmdetection3d](https://github.com/open-mmlab/mmdetection3d) installation based on [installation](https://mmdetection3d.readthedocs.io/en/latest/get_started.html)
+```bash
+pip install -U openmim
+mim install mmengine
+mim install 'mmcv>=2.0.0rc4'
+mim install 'mmdet>=3.0.0'
+(mycondapy310) PS D:\Developer> &'C:\Program Files\Git\bin\git.exe' --version
+(mycondapy310) PS D:\Developer> &'C:\Program Files\Git\bin\git.exe' clone https://github.com/open-mmlab/mmdetection3d.git
+(mycondapy310) PS D:\Developer\mmdetection3d> pip install -v -e .
+>>> import mmdet3d
+>>> print(mmdet3d.__version__)
+1.4.0
+pip install cumm-cu118
+pip install spconv-cu118
+#test installation
+(mycondapy310) PS D:\Developer\mmdetection3d> mim download mmdet3d --config pointpillars_hv_secfpn_8xb6-160e_kitti-3d-car --dest .
+(mycondapy310) PS D:\Developer\mmdetection3d> python demo/pcd_demo.py demo/data/kitti/000008.bin pointpillars_hv_secfpn_8xb6-160e_kitti-3d-car.py hv_pointpillars_secfpn_6x8_160e_kitti-3d-car_20220331_134606-d42d15ed.pth
+cat .\outputs\preds\000008.json
+{"labels_3d": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "scores_3d": 
+```
+
 ## BEV Fusion Training in HPC now
 ```bash
 (mycondapy310) [010796032@cs001 3DDepth]$ python ./mydetector3d/tools/mytrain.py
