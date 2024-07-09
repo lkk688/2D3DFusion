@@ -1,4 +1,9 @@
-# 3DDepth
+# 2D3DFusion
+## System Architecture
+Distributed Cooperative Sensing: Facilitates distributed deep fusion for hybrid Radar/Camera/Lidar data and multi-station cooperative sensing. The architecture of our proposed AI processing framework for 2D3DFusion is shown here:
+
+<img width="643" alt="image" src="https://github.com/lkk688/2D3DFusion/assets/6676586/f7b69bbd-e8d5-42bf-b48f-1c964263f6ad">
+
 ## Readthedocs
 
 The document for 3D detection model design and Kitti and Waymo data training: https://mytutorial-lkk.readthedocs.io/en/latest/mydetector3d.html
