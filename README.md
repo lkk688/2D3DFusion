@@ -13,18 +13,23 @@ The document for 3D detection based on V2X cooperative Lidar sensing data: https
 Nuscence dataset and BEV transform based on Lift Splat is available on: https://mytutorial-lkk.readthedocs.io/en/latest/nuscenes.html
 
 ## Setup repo
-Clone this repository, install this package (need NVIDIA CUDA environment)
+Clone this repository, install this package (no need NVIDIA CUDA environment, tested in Mac)
 ```bash
+git clone https://github.com/lkk688/2D3DFusion.git
 python setup.py develop
 ```
+After the package installation, you can test import the mydetector3d module
+```bash
+import mydetector3d
+```
 
-Install the SparseConv library from [spconv](https://github.com/traveller59/spconv) and [numba](https://numba.pydata.org/numba-doc/latest/user/installing.html):
+Install the [SharedArray library](https://pypi.org/project/SharedArray/), SparseConv library from [spconv](https://github.com/traveller59/spconv) and [numba](https://numba.pydata.org/numba-doc/latest/user/installing.html):
 ```bash
 pip install spconv-cu117 #pip install spconv-cu118
 pip install numba
 ```
 
-build additional cuda ops libraries via
+If using HPC, you can build additional cuda ops libraries via
 ```bash
 (mycondapy39) [010796032@cs001 3DDepth]$ module load cuda-11.8.0-gcc-11.2.0-5tlywx3 #should match pytorch cuda version
 (mycondapy39) [010796032@cs001 3DDepth]$ python cudasetup.py build_ext --inplace
