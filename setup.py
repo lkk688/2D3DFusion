@@ -2,14 +2,14 @@ import os
 import subprocess
 
 from setuptools import find_packages, setup
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+#from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
-def make_cuda_ext(name, module, sources):
-    cuda_ext = CUDAExtension(
-        name='%s.%s' % (module, name),
-        sources=[os.path.join(*module.split('.'), src) for src in sources]
-    )
-    return cuda_ext
+# def make_cuda_ext(name, module, sources):
+#     cuda_ext = CUDAExtension(
+#         name='%s.%s' % (module, name),
+#         sources=[os.path.join(*module.split('.'), src) for src in sources]
+#     )
+#     return cuda_ext
 
 if __name__ == '__main__':
     version = '0.1' #% get_git_commit_number()
@@ -28,7 +28,7 @@ if __name__ == '__main__':
             'pyyaml',
             'scikit-image',
             'tqdm',
-            'SharedArray', #https://pypi.org/project/SharedArray/
+            #'SharedArray', #https://pypi.org/project/SharedArray/
             # 'spconv',  # installed independently 
         ],
 
@@ -36,9 +36,9 @@ if __name__ == '__main__':
         author_email='kaikai.liu@sjsu.edu',
         license='Apache License 2.0',
         packages=find_packages(exclude=['tools', 'data', 'output']),
-        cmdclass={
-            'build_ext': BuildExtension,
-        },
+        # cmdclass={
+        #     'build_ext': BuildExtension,
+        # },
         # ext_modules=[
             
         # ],
